@@ -196,6 +196,9 @@ router
 
     // Govt Routes
     router
+      .post('/govtEvent/sync', [GovtEventsController, 'sync'])
+      .use(middleware.auth({ guards: ['adminapi', 'api'] }))
+    router
       .resource('govtEvent', GovtEventsController)
       .apiOnly()
       .use('*', middleware.auth({ guards: ['adminapi', 'api'] }))

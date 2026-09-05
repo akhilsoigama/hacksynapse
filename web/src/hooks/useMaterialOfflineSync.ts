@@ -2,13 +2,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import axiosInstance from '../utils/axios';
 import { useUser } from '../atoms/userAtom';
-import {
+import { 
+  getMaterialByIdDB,
   getPendingMaterialSyncQueue,
-  updateMaterialSyncQueueItem,
   removeMaterialSyncQueueItem,
   setMaterialDB,
-  getMaterialByIdDB,
-} from '../indexDB';
+  updateMaterialSyncQueueItem,
+
+ } from '@/indexDB/material';
 import { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
 

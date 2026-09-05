@@ -1,14 +1,13 @@
 import { toast } from "sonner";
 import { IAssignmentItem, IcreateAssignment } from "../types/assignment";
 import axiosInstance, { endpoints, fetcher } from "../utils/axios";
-import { useUser } from "../atoms/userAtom";
-import { userAtom } from "../store/atoms/user.atoms";
-import { getDefaultStore } from "jotai";
-import type { User } from "../types/user";
-import { getAssignmentByIdDB, getAssignmentDB } from "../indexDB";
-import { useMemo, useState, useEffect } from "react";
+import { userAtom, useUser } from "../atoms/userAtom";
+import { useMemo, useEffect, useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useFaculties } from "./faculty";
+import { getAssignmentByIdDB, getAssignmentDB, setAssignmentDB } from "../indexDB/assignment";
+import { User } from "@/types/user";
+import { getDefaultStore } from "jotai";
 
 const swrOptions = {
     revalidateIfStale: false,
@@ -26,6 +25,8 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
     return fallback;
 };
 
+const store = getDefaultStore();
+
 // ==========================================
 // Authorization Helpers (Tenant, Role & Ownership)
 // ==========================================
@@ -33,7 +34,7 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
 export const getActiveUser = (userOverride?: User | null): User | null => {
     if (userOverride) return userOverride;
     try {
-        const storeUser = getDefaultStore().get(userAtom);
+        const storeUser = store.get(userAtom);
         if (storeUser) return storeUser;
     } catch {
         // Ignore store retrieval error
@@ -242,7 +243,7 @@ export function useAssignments(searchFor?: string, facultyId?: number, page = 1,
     useEffect(() => {
         let isMounted = true;
         if (error || (!navigator.onLine && (!data?.data || data.data.length === 0))) {
-            getAssignmentDB(user).then((cached) => {
+            getAssignmentDB().then((cached) => {
                 if (isMounted) {
                     setOfflineAssignments(cached);
                 }
@@ -253,25 +254,35 @@ export function useAssignments(searchFor?: string, facultyId?: number, page = 1,
         };
     }, [data?.data, error, user]);
 
-    const activeList = (data?.data && data.data.length > 0) ? data.data : offlineAssignments;
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !navigator.onLine) {
+            getAssignmentDB().then(localData => {
+                let filtered = localData;
+                if (user?.userType === 'student') {
+                    filtered = localData.filter(item => item.instituteId === user.data?.instituteId && item.departmentId === user.data?.departmentId);
+                } else if (user?.isInstitute) {
+                    filtered = localData.filter(item => item.instituteId === user.data?.instituteId);
+                }
+                setOfflineAssignments(filtered);
+            });
+        } else if (data?.data) {
+            setAssignmentDB(data.data);
+        }
+    }, [data, user, error]);
 
-    // Apply strict tenant, department (for students), and ownership frontend filtering
-    const filteredAssignments = useMemo(() => {
-        if (!user) return activeList;
-        return activeList.filter((item) => canViewAssignment(item, user));
-    }, [activeList, user]);
+    const finalData = (typeof window !== 'undefined' && !navigator.onLine ? offlineAssignments : data?.data) || [];
 
     const memoizedValue = useMemo(
         () => ({
-            assignments: filteredAssignments,
-            assignmentLoadind: isLoading && filteredAssignments.length === 0,
+            assignments: finalData,
+            assignmentLoadind: isLoading,
             assignmentError: error,
             assessmentValidating: isValidating,
-            assessmentEmpty: !isLoading && !error && filteredAssignments.length === 0,
+            assessmentEmpty: !isLoading && !error && finalData.length === 0,
             assignmentMutate: mutate,
             assignmentMeta: data?.meta,
         }),
-        [data?.meta, error, filteredAssignments, isLoading, isValidating, mutate]
+        [finalData, data?.meta, error, isLoading, isValidating, mutate]
     );
 
     return memoizedValue;
@@ -341,7 +352,7 @@ export function useAssignment(assignmentId: number) {
 
         // Offline fallback: verified by tenant scope in IndexedDB
         if (error || (!navigator.onLine && !data?.data)) {
-            getAssignmentByIdDB(assignmentId, user).then((cached) => {
+            getAssignmentByIdDB(assignmentId).then((cached) => {
                 if (isMounted) {
                     setOfflineAssignment(cached);
                 }
@@ -439,7 +450,7 @@ export async function updateAssignment(
 
     // 4. Verify existing record authorization if cached or available
     try {
-        const cached = await getAssignmentByIdDB(id, user);
+        const cached = await getAssignmentByIdDB(id);
         if (cached && !canEditAssignment(cached, user)) {
             toast.error("Access denied: You do not have permission to update this assignment.");
             return null;
