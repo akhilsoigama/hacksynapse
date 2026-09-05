@@ -13,7 +13,8 @@ export default function Page() {
 
   const [data, setData] = useState<ILecture | undefined>(undefined);
 
-  const { lecture } = useGetLecture(Number(id));
+  const lectureId = id ? (!isNaN(Number(id)) ? Number(id) : id) : null;
+  const { lecture } = useGetLecture(lectureId);
 
   useEffect(() => {
     if (lecture) {

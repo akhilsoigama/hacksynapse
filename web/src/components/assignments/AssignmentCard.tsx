@@ -71,18 +71,26 @@ const AssignmentCard = ({
                 icon: <FaEye size={12} />,
                 variant: "default",
               },
-              {
-                label: <Translated text="Edit" />,
-                onClick: () => onEdit && onEdit(assignment.id),
-                icon: <FaEdit size={12} />,
-                variant: "warning",
-              },
-              {
-                label: <Translated text="Delete" />,
-                onClick: () => onDelete && onDelete(assignment.id),
-                icon: <FaTrash size={12} />,
-                variant: "danger",
-              },
+              ...(onEdit
+                ? [
+                    {
+                      label: <Translated text="Edit" />,
+                      onClick: () => onEdit(assignment.id),
+                      icon: <FaEdit size={12} />,
+                      variant: "warning" as const,
+                    },
+                  ]
+                : []),
+              ...(onDelete
+                ? [
+                    {
+                      label: <Translated text="Delete" />,
+                      onClick: () => onDelete(assignment.id),
+                      icon: <FaTrash size={12} />,
+                      variant: "danger" as const,
+                    },
+                  ]
+                : []),
             ]}
           />
         </div>

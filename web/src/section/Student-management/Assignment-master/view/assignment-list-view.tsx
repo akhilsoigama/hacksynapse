@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { deleteAssignment, useAssignments } from "../../../../action/assignment";
+import {
+    deleteAssignment,
+    useAssignments,
+    canEditAssignment,
+    canDeleteAssignment,
+    canViewAssignment,
+} from "../../../../action/assignment";
 import { useAssignmentUploads } from "../../../../action/assignmentUpload";
 import { useUser } from "../../../../atoms/userAtom";
 import { useRouter } from "../../../../hooks/useRouter";
@@ -7,10 +13,11 @@ import AssignmentList from "../assignment-list";
 import { IAssignmentItem } from "../../../../types/assignment";
 import DeleteModal from "../../../../components/common/deleteModel";
 import AssignmentDetailsModal from "./AssignmentDetailsModal";
+import { toast } from "sonner";
 
 const AssignmentListView = () => {
-    const router = useRouter()
-    const { isLoading: userLoading } = useUser();
+    const router = useRouter();
+    const { user, isLoading: userLoading } = useUser();
 
     const { assignments, assignmentLoadind, assignmentMutate } = useAssignments()
     const { submissions } = useAssignmentUploads();
@@ -45,10 +52,18 @@ const AssignmentListView = () => {
     const shouldShowLoading = assignmentLoadind || (userLoading && stableAssignment.length === 0);
 
     const handleEditAssignment = (assignment: IAssignmentItem) => {
+        if (!canEditAssignment(assignment, user)) {
+            toast.error("Access denied: You do not have permission to edit this assignment.");
+            return;
+        }
         router.push(`/dashboard/faculty-management/assignment/${assignment.id}/edit`);
     };
 
     const handleViewAssignment = (assignment: IAssignmentItem) => {
+        if (!canViewAssignment(assignment, user)) {
+            toast.error("Access denied: You do not have permission to view this assignment.");
+            return;
+        }
         setViewModal({
             isOpen: true,
             assignment,
@@ -58,6 +73,11 @@ const AssignmentListView = () => {
     const handleDeleteAssignment = (id: number) => {
         const assignmentDelete = stableAssignment.find((a: IAssignmentItem) => a.id === id);
         if (!assignmentDelete) return;
+
+        if (!canDeleteAssignment(assignmentDelete, user)) {
+            toast.error("Access denied: You do not have permission to delete this assignment.");
+            return;
+        }
 
         setDeleteModal({
             isOpen: true,
@@ -69,10 +89,20 @@ const AssignmentListView = () => {
     const handleConfirmDelete = async () => {
         if (!deleteModal.assignment) return;
 
+        if (!canDeleteAssignment(deleteModal.assignment, user)) {
+            toast.error("Access denied: You do not have permission to delete this assignment.");
+            setDeleteModal({
+                isOpen: false,
+                assignment: null,
+                isLoading: false,
+            });
+            return;
+        }
+
         setDeleteModal(prev => ({ ...prev, isLoading: true }));
 
         try {
-            const deleted = await deleteAssignment(deleteModal.assignment.id);
+            const deleted = await deleteAssignment(deleteModal.assignment.id, deleteModal.assignment, user);
             if (deleted) {
                 await assignmentMutate();
                 setDeleteModal({
@@ -80,6 +110,8 @@ const AssignmentListView = () => {
                     assignment: null,
                     isLoading: false,
                 });
+            } else {
+                setDeleteModal(prev => ({ ...prev, isLoading: false }));
             }
         } catch {
             setDeleteModal(prev => ({ ...prev, isLoading: false }));

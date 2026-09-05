@@ -68,9 +68,8 @@ const CollapsedFlyout = ({
     return (
       <div className="py-2 px-1">
         <div
-          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${
-            isDark ? 'text-gray-500' : 'text-gray-400'
-          }`}
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'
+            }`}
         >
           <Translated text={link.label} />
         </div>
@@ -82,9 +81,8 @@ const CollapsedFlyout = ({
     <div className="py-2">
       {/* Section header */}
       <div
-        className={`px-4 py-1.5 mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] border-b ${
-          isDark ? 'text-gray-500 border-gray-800' : 'text-gray-400 border-gray-100'
-        }`}
+        className={`px-4 py-1.5 mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] border-b ${isDark ? 'text-gray-500 border-gray-800' : 'text-gray-400 border-gray-100'
+          }`}
       >
         <Translated text={link.label} />
       </div>
@@ -114,19 +112,17 @@ const CollapsedFlyout = ({
               `}
             >
               {sub.icon && (
-                <span className={`h-3.5 w-3.5 shrink-0 flex items-center justify-center ${
-                  isSubActive
+                <span className={`h-3.5 w-3.5 shrink-0 flex items-center justify-center ${isSubActive
                     ? isDark ? 'text-slate-400' : 'text-slate-500'
                     : isDark ? 'text-gray-500' : 'text-gray-400'
-                }`}>
+                  }`}>
                   {sub.icon}
                 </span>
               )}
               <Translated text={sub.label} />
               {isSubActive && (
-                <span className={`ml-auto h-1.5 w-1.5 rounded-full shrink-0 ${
-                  isDark ? 'bg-slate-400' : 'bg-slate-500'
-                }`} />
+                <span className={`ml-auto h-1.5 w-1.5 rounded-full shrink-0 ${isDark ? 'bg-slate-400' : 'bg-slate-500'
+                  }`} />
               )}
             </button>
           );
@@ -170,11 +166,10 @@ const NavigationLink = ({
   const isExpanded = expandedLink === link.to;
   const isActive = currentPath === link.to || currentPath.startsWith(link.to + '/');
 
-  const iconClass = `flex h-5 w-5 items-center justify-center shrink-0 ${
-    isActive
+  const iconClass = `flex h-5 w-5 items-center justify-center shrink-0 ${isActive
       ? isDark ? 'text-slate-300' : 'text-slate-600'
       : isDark ? 'text-gray-400' : 'text-gray-500'
-  }`;
+    }`;
 
   if (link.subLinks) {
     return (
@@ -195,28 +190,25 @@ const NavigationLink = ({
           >
             {(isExpanded || isActive) && (
               <span
-                className={`absolute left-0 top-1/2 h-5 w-0.75 -translate-y-1/2 rounded-r-full ${
-                  isDark ? 'bg-slate-950/70' : 'bg-slate-600'
-                }`}
+                className={`absolute left-0 top-1/2 h-5 w-0.75 -translate-y-1/2 rounded-r-full ${isDark ? 'bg-slate-950/70' : 'bg-slate-600'
+                  }`}
               />
             )}
 
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-              isActive
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isActive
                 ? isDark ? 'bg-slate-950/70 text-slate-200' : 'bg-slate-50 text-slate-600'
                 : isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
-            }`}>
+              }`}>
               <span className={iconClass}>{link.icon}</span>
             </span>
 
             <AnimatePresence>
               {isSidebarExpanded && (
                 <motion.span
-                  className={`flex-1 text-left text-sm font-medium truncate ${
-                    isExpanded || isActive
+                  className={`flex-1 text-left text-sm font-medium truncate ${isExpanded || isActive
                       ? isDark ? 'text-slate-200' : 'text-slate-700'
-                    : isDark ? 'text-slate-200' : 'text-slate-800'
-                  }`}
+                      : isDark ? 'text-slate-200' : 'text-slate-800'
+                    }`}
                   initial={shouldReduceMotion ? false : { opacity: 0, x: -6 }}
                   animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
                   exit={shouldReduceMotion ? {} : { opacity: 0, x: -6 }}
@@ -229,11 +221,10 @@ const NavigationLink = ({
 
             {isSidebarExpanded && (
               <span
-                className={`shrink-0 ${
-                  isExpanded || isActive
+                className={`shrink-0 ${isExpanded || isActive
                     ? isDark ? 'text-slate-200' : 'text-slate-500'
                     : isDark ? 'text-slate-500' : 'text-slate-400'
-                } transition-transform duration-150 ease-out ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
+                  } transition-transform duration-150 ease-out ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
               >
                 <FaChevronDown className="h-3 w-3" />
               </span>
@@ -260,7 +251,7 @@ const NavigationLink = ({
   return (
     <div className="relative">
       <NavLink to={link.to} onClick={handleLinkClick} end className="block">
-        {({ isActive }) => (
+        {({ isActive }: { isActive: boolean }) => (
           <SidebarLinkItem
             isActive={isActive}
             isSidebarExpanded={isSidebarExpanded}
@@ -271,32 +262,29 @@ const NavigationLink = ({
           >
             {isActive && (
               <motion.span
-                className={`absolute left-0 top-1/2 h-5 w-0.75 -translate-y-1/2 rounded-r-full ${
-                  isDark ? 'bg-slate-800' : 'bg-slate-600'
-                }`}
+                className={`absolute left-0 top-1/2 h-5 w-0.75 -translate-y-1/2 rounded-r-full ${isDark ? 'bg-slate-800' : 'bg-slate-600'
+                  }`}
                 initial={shouldReduceMotion ? false : { opacity: 0 }}
                 animate={shouldReduceMotion ? {} : { opacity: 1 }}
                 transition={transition}
               />
             )}
 
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-              isActive
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isActive
                 ? isDark ? 'bg-slate-800/15 text-slate-200' : 'bg-slate-50 text-slate-600'
                 : isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
-            }`}>
+              }`}>
               <span className={iconClass}>{link.icon}</span>
             </span>
 
             {isSidebarExpanded && (
               <motion.span
-                className={`flex-1 text-left text-sm font-medium truncate ${
-                  isActive
+                className={`flex-1 text-left text-sm font-medium truncate ${isActive
                     ? isDark ? 'text-slate-200' : 'text-slate-700'
                     : isDark
                       ? 'text-slate-300 group-hover:text-slate-100'
                       : 'text-slate-700 group-hover:text-slate-900'
-                }`}
+                  }`}
                 initial={shouldReduceMotion ? false : { opacity: 0, x: -6 }}
                 animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
                 exit={shouldReduceMotion ? {} : { opacity: 0, x: -6 }}

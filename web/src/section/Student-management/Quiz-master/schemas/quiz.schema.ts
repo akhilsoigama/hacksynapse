@@ -18,7 +18,7 @@ export const questionSchema = z.object({
   questionType: z.enum(['mcq', 'true/false'], {
     message: 'Question type is required',
   }),
-  marks:  z
+  marks: z
     .union([z.string(), z.number()])
     .transform((val) => (typeof val === "number" ? val : Number(val)))
     .refine((val) => Number.isFinite(val) && val >= 1, {
@@ -43,52 +43,52 @@ export const createQuizSchema = z.object({
     .string()
     .min(3, 'Quiz title must be at least 3 characters')
     .max(200, 'Quiz title cannot exceed 200 characters'),
-  
+
   quizDescription: z
     .string()
     .max(1000, 'Description cannot exceed 1000 characters')
     .optional()
     .nullable(),
-  
+
   quizBanner: z
     .string()
     .url('Invalid banner URL')
     .optional()
     .nullable(),
-  
+
   subject: z
     .string()
     .min(1, 'Subject is required')
     .optional()
     .nullable(),
-  
+
   std: z
     .string()
     .min(1, 'Standard is required')
     .optional()
     .nullable(),
-  
+
   // IDs
   departmentId: z.number().positive('Department ID is required'),
-  
+
   // Settings
   dueDate: z.string().min(1, 'Due date is required'),
-  
+
   marks: z
     .union([z.string(), z.number()])
     .transform((val) => (typeof val === "number" ? val : Number(val)))
     .refine((val) => Number.isFinite(val) && val >= 1, {
       message: "Marks must be at least 1",
     }),
-  
+
   attemptLimit: z
     .union([z.string(), z.number()])
     .transform((val) => (typeof val === "number" ? val : Number(val)))
     .refine((val) => Number.isFinite(val) && val >= 1, {
       message: "Attempt limit must be at least 1",
     }),
-  
-  isActive: z.boolean(),  
+
+  isActive: z.boolean(),
   // Questions
   questions: z
     .array(questionSchema)

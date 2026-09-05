@@ -81,6 +81,94 @@ export default class QuizzesService {
         requestData
       )) as CreateQuizPayload
 
+      const quizTotalMarks = Number(validatedData.marks)
+      const questions = validatedData.questions || []
+      const questionTotalMarks = questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0)
+
+      if (!quizTotalMarks || quizTotalMarks <= 0) {
+        await trx.rollback()
+        this.ctx.response.status(422)
+        return {
+          status: false,
+          message: 'Quiz total marks must be greater than 0.',
+          quizTotalMarks,
+          questionTotalMarks,
+          difference: Math.abs(quizTotalMarks - questionTotalMarks),
+          error: {
+            messages: [
+              {
+                field: 'marks',
+                message: 'Quiz total marks must be greater than 0.',
+              },
+            ],
+          },
+        }
+      }
+
+      if (questions.length === 0) {
+        await trx.rollback()
+        this.ctx.response.status(422)
+        return {
+          status: false,
+          message: messages.quiz_questions_required,
+          quizTotalMarks,
+          questionTotalMarks: 0,
+          difference: quizTotalMarks,
+          error: {
+            messages: [
+              {
+                field: 'questions',
+                message: messages.quiz_questions_required,
+              },
+            ],
+          },
+        }
+      }
+
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i]
+        const qMarks = Number(q.marks)
+        if (!Number.isFinite(qMarks) || qMarks <= 0) {
+          await trx.rollback()
+          this.ctx.response.status(422)
+          return {
+            status: false,
+            message: `Question ${i + 1} marks must be greater than 0.`,
+            quizTotalMarks,
+            questionTotalMarks,
+            difference: Math.abs(quizTotalMarks - questionTotalMarks),
+            error: {
+              messages: [
+                {
+                  field: `questions.${i}.marks`,
+                  message: `Question ${i + 1} marks must be greater than 0.`,
+                },
+              ],
+            },
+          }
+        }
+      }
+
+      if (quizTotalMarks !== questionTotalMarks) {
+        await trx.rollback()
+        this.ctx.response.status(422)
+        return {
+          status: false,
+          message: messages.quiz_marks_mismatch,
+          quizTotalMarks,
+          questionTotalMarks,
+          difference: Math.abs(quizTotalMarks - questionTotalMarks),
+          error: {
+            messages: [
+              {
+                field: 'marks',
+                message: `Quiz total marks (${quizTotalMarks}) must match the total marks of all questions (${questionTotalMarks}). Difference: ${Math.abs(quizTotalMarks - questionTotalMarks)}.`,
+              },
+            ],
+          },
+        }
+      }
+
       const existingQuiz = await Quizzes.query()
         .where('quiz_title', validatedData.quizTitle)
         .whereNull('deleted_at')
@@ -147,7 +235,7 @@ export default class QuizzesService {
       return {
         status: false,
         message: messages.quiz_creation_failed,
-        data: errorHandler(error),
+        data: errorHandler(error, this.ctx),
       }
     }
   }
@@ -172,7 +260,7 @@ export default class QuizzesService {
           'updated_at',
         ])
         .preload('questions', (questionQuery) => {
-          questionQuery.select(['id'])
+          questionQuery.select(['id', 'marks'])
         })
         .apply((scopes) => scopes.softDeletes())
       if (searchFor === 'create') {
@@ -260,6 +348,77 @@ export default class QuizzesService {
           status: false,
           message: messages.quiz_not_found,
           data: null,
+        }
+      }
+
+      const targetQuizMarks = validatedData.marks !== undefined ? Number(validatedData.marks) : Number(existingQuiz.marks)
+
+      let targetQuestionMarks = 0
+      if (validatedData.questions && validatedData.questions.length > 0) {
+        for (let i = 0; i < validatedData.questions.length; i++) {
+          const q = validatedData.questions[i]
+          const qMarks = Number(q.marks)
+          if (!Number.isFinite(qMarks) || qMarks <= 0) {
+            await trx.rollback()
+            this.ctx.response.status(422)
+            return {
+              status: false,
+              message: `Question ${i + 1} marks must be greater than 0.`,
+              quizTotalMarks: targetQuizMarks,
+              questionTotalMarks: targetQuestionMarks,
+              difference: Math.abs(targetQuizMarks - targetQuestionMarks),
+              error: {
+                messages: [
+                  {
+                    field: `questions.${i}.marks`,
+                    message: `Question ${i + 1} marks must be greater than 0.`,
+                  },
+                ],
+              },
+            }
+          }
+          targetQuestionMarks += qMarks
+        }
+      } else if (validatedData.questions && validatedData.questions.length === 0) {
+        await trx.rollback()
+        this.ctx.response.status(422)
+        return {
+          status: false,
+          message: messages.quiz_questions_required,
+          quizTotalMarks: targetQuizMarks,
+          questionTotalMarks: 0,
+          difference: targetQuizMarks,
+          error: {
+            messages: [
+              {
+                field: 'questions',
+                message: messages.quiz_questions_required,
+              },
+            ],
+          },
+        }
+      } else {
+        const existingQuestions = await existingQuiz.related('questions').query().whereNull('deleted_at')
+        targetQuestionMarks = existingQuestions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0)
+      }
+
+      if (targetQuizMarks !== targetQuestionMarks) {
+        await trx.rollback()
+        this.ctx.response.status(422)
+        return {
+          status: false,
+          message: messages.quiz_marks_mismatch,
+          quizTotalMarks: targetQuizMarks,
+          questionTotalMarks: targetQuestionMarks,
+          difference: Math.abs(targetQuizMarks - targetQuestionMarks),
+          error: {
+            messages: [
+              {
+                field: 'marks',
+                message: `Quiz total marks (${targetQuizMarks}) must match the total marks of all questions (${targetQuestionMarks}). Difference: ${Math.abs(targetQuizMarks - targetQuestionMarks)}.`,
+              },
+            ],
+          },
         }
       }
 
@@ -388,7 +547,7 @@ export default class QuizzesService {
       return {
         status: false,
         message: messages.quiz_update_failed,
-        data: errorHandler(error),
+        data: errorHandler(error, this.ctx),
       }
     }
   }
@@ -414,9 +573,8 @@ export default class QuizzesService {
       return {
         status: false,
         message: messages.common_messages_error,
-        error: errorHandler(error),
+        error: errorHandler(error, this.ctx),
       }
     }
   }
 }
-

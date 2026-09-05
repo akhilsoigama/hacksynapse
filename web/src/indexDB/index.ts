@@ -3,4 +3,3 @@ export * from "./user";
 export * from "./rolePermission";
 export * from "./permission";
 export * from "./moduleCache";
-export * from "./assignment"

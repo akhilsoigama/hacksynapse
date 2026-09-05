@@ -351,9 +351,8 @@ export default function QuizAttemptNewEditForm({
     <FormProvider {...methods}>
       <div className={`min-h-screen px-4 py-6 `}>
         <div
-          className={`mx-auto w-full max-w-4xl rounded-xl border p-6 ${
-            isDark ? "border-slate-700 " : "border-slate-200 "
-          }`}
+          className={`mx-auto w-full max-w-4xl rounded-xl border p-6 ${isDark ? "border-slate-700 " : "border-slate-200 "
+            }`}
         >
           <h1
             className={`text-3xl font-bold ${isDark ? "text-slate-100" : "text-slate-950/70"} flex items-center`}
@@ -393,9 +392,8 @@ export default function QuizAttemptNewEditForm({
 
             {!sourceData?.id ? (
               <div
-                className={`rounded-xl border p-4 ${
-                  isDark ? "border-slate-700 " : "border-slate-200 "
-                }`}
+                className={`rounded-xl border p-4 ${isDark ? "border-slate-700 " : "border-slate-200 "
+                  }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -425,11 +423,10 @@ export default function QuizAttemptNewEditForm({
                     {quizQuestions.map((question, questionIndex) => (
                       <div
                         key={question.id}
-                        className={`rounded-lg border p-4 ${
-                          isDark
+                        className={`rounded-lg border p-4 ${isDark
                             ? "border-slate-700 bg-slate-950"
                             : "border-slate-200 bg-white"
-                        }`}
+                          }`}
                       >
                         <p
                           className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-900"}`}
@@ -457,15 +454,14 @@ export default function QuizAttemptNewEditForm({
                                   onClick={() =>
                                     handleSelectAnswer(question.id, optionIndex)
                                   }
-                                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
-                                    isSelected
+                                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${isSelected
                                       ? isDark
                                         ? "border-slate-400 bg-slate-500/10 text-slate-100"
                                         : "border-slate-500 bg-slate-50 text-slate-900"
                                       : isDark
                                         ? "border-slate-700 bg-slate-950 text-slate-200"
                                         : "border-slate-200 bg-white text-slate-900"
-                                  }`}
+                                    }`}
                                 >
                                   {option.optionText}
                                 </button>
@@ -499,11 +495,10 @@ export default function QuizAttemptNewEditForm({
 
               <ParticleButton
                 type="submit"
-                className={`px-4 flex  items-center justify-center py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                  isDark
+                className={`px-4 flex  items-center justify-center py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${isDark
                     ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
                     : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
-                }`}
+                  }`}
                 successDuration={800}
                 disabled={isSubmitting}
               >

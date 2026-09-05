@@ -19,6 +19,8 @@ export const ASSIGNMENT_UPLOAD_CACHE_STORE = "assignmentUploadsCache";
 export const QUIZ_CACHE_STORE = "quizzesCache";
 export const QUIZ_ATTEMPT_CACHE_STORE = "quizAttemptsCache";
 export const MATERIAL_CACHE_STORE = "materialsCache";
+export const MATERIAL_STORE = "material";
+export const MATERIAL_SYNC_QUEUE_STORE = "material_sync_queue";
 export const FACULTY_LEAVE_CACHE_STORE = "facultyLeavesCache";
 export const STUDENT_QUERY_CACHE_STORE = "studentQueriesCache";
 export const TRANSLATION_CACHE_STORE = "translationCache";
@@ -26,6 +28,7 @@ export const PROGRESS_CACHE_STORE = "progressCache";
 export const CLOUDINARY_CACHE_STORE = "cloudinaryCache";
 export const ASSIGNMENT_SYNC_QUEUE_STORE = "assignmentSyncQueue";
 export const GOVT_EVENT_SYNC_QUEUE_STORE = "govtEventSyncQueue";
+
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -100,6 +103,7 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
         db.createObjectStore(ASSIGNMENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
         db.createObjectStore(GOVT_EVENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
       },
+
     }).catch((error) => {
       console.error("❌ DB initialization failed:", error);
       dbPromise = null;

@@ -17,6 +17,7 @@ import {
   createAssignment,
   updateAssignment,
   useAssignments,
+  canEditAssignment,
 } from "../../../action/assignment";
 import { useDepartments } from "../../../action/department";
 import { useUser } from "../../../atoms/userAtom";
@@ -187,7 +188,12 @@ const AssignmentCreateNewEditForm = ({
 
     try {
       if (isEdit && currentData?.id) {
-        const updated = await updateAssignment(currentData.id, payload);
+        if (!canEditAssignment(currentData, user)) {
+          toast.error("Access denied: You do not have permission to update this assignment.");
+          return;
+        }
+
+        const updated = await updateAssignment(currentData.id, payload, user);
         if (updated) {
           await assignmentMutate();
           toast.success(<Translated text="assignment.updated.success" />);
@@ -209,6 +215,29 @@ const AssignmentCreateNewEditForm = ({
       toast.error(<Translated text="assignment.save.failed" />);
     }
   };
+
+  if (isEdit && currentData && !canEditAssignment(currentData, user)) {
+    return (
+      <div className="min-h-screen px-3 py-4 sm:px-4 sm:py-6 md:px-6">
+        <div
+          className={`mx-auto max-w-full rounded-xl border p-6 ${
+            isDark ? "border-slate-700 bg-slate-950/70" : "border-slate-200 bg-white"
+          }`}
+        >
+          <div className="text-red-500 font-medium text-lg mb-4">
+            <Translated text="Access Denied: You do not have permission to edit this assignment." />
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/faculty-management/assignment/list")}
+            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition"
+          >
+            <Translated text="Back to Assignments" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <FormProvider {...formMethods}>
