@@ -35,8 +35,17 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ lecture, onEdit, onDelete, 
   const actionMenuItems = [
     { label: 'View Content', onClick: () => onView(lecture), icon: <FaEye size={13} />, variant: 'default' as const },
     ...(onEdit ? [{ label: 'Edit', onClick: () => onEdit(lecture), icon: <FaEdit size={13} />, variant: 'default' as const }] : []),
-    ...(onDelete ? [{ label: 'Delete', onClick: () => onDelete(lecture.id), icon: <FaTrash size={13} />, variant: 'danger' as const }] : []),
+    ...(onDelete && lecture.id ? [{ label: 'Delete', onClick: () => onDelete(lecture.id!), icon: <FaTrash size={13} />, variant: 'danger' as const }] : []),
   ];
+
+  const renderSyncBadge = () => {
+    if (lecture.syncStatus !== 'pending') return null;
+    return (
+      <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/90 backdrop-blur-md text-white text-[10px] font-semibold border border-amber-300/40 z-10">
+        Pending Sync
+      </div>
+    );
+  };
 
   const showDuration = Boolean(lecture.durationInSeconds) && (lecture.contentType === 'video' || lecture.contentType === 'audio');
 
@@ -285,6 +294,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ lecture, onEdit, onDelete, 
           onClick={() => onView(lecture)}
         >
           {renderHeader()}
+          {renderSyncBadge()}
         </div>
 
         {/* ── Body ── */}

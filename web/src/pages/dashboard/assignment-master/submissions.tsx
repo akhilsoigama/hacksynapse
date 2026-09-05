@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, memo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAssignmentUploads } from '../../../action/assignmentUpload';
 import { gradeAssignmentSubmission } from '../../../action/assignmentUpload';
+import { useAssignment } from '../../../action/assignment';
 import { IAssignmentUploadListItem } from '../../../types/assignmentUpload';
 import { toast } from 'sonner';
 import { ParticleButton } from '../../../components/ui/particle-button';
@@ -34,6 +35,8 @@ const AssignmentSubmissionsPage = memo(function AssignmentSubmissionsPage() {
   const [gradingData, setGradingData] = useState<GradingData | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const selectedAssignmentId = searchParams.get('assignmentId');
+  const assignmentIdNum = selectedAssignmentId ? Number(selectedAssignmentId) : 0;
+  const { isAccessDenied: isAssignmentAccessDenied } = useAssignment(assignmentIdNum);
 
   const tableRows = useMemo<SubmissionRow[]>(
     () =>
@@ -45,13 +48,15 @@ const AssignmentSubmissionsPage = memo(function AssignmentSubmissionsPage() {
     [submissions]
   );
 
-  const filteredRows = useMemo(
-    () =>
-      selectedAssignmentId
-        ? tableRows.filter((row) => String(row.assignmentId) === String(selectedAssignmentId))
-        : tableRows,
-    [tableRows, selectedAssignmentId]
-  );
+  const filteredRows = useMemo(() => {
+    if (selectedAssignmentId) {
+      if (isAssignmentAccessDenied) {
+        return [];
+      }
+      return tableRows.filter((row) => String(row.assignmentId) === String(selectedAssignmentId));
+    }
+    return tableRows;
+  }, [tableRows, selectedAssignmentId, isAssignmentAccessDenied]);
 
   const handleUpdateMarks = useCallback(
     async (uploadId: number, marks: number) => {
@@ -82,6 +87,11 @@ const AssignmentSubmissionsPage = memo(function AssignmentSubmissionsPage() {
       {hasAssociationError && (
         <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           Your account is logged in as faculty but is not linked to a faculty profile yet. Please contact admin to map this user to a faculty record.
+        </div>
+      )}
+      {selectedAssignmentId && isAssignmentAccessDenied && (
+        <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+          Access Denied: You do not have permission to view submissions for assignment #{selectedAssignmentId}.
         </div>
       )}
       <div className="space-y-2">

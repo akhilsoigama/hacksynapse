@@ -8,9 +8,9 @@ import { Translated } from "../../../components/common/translator/translator";
 
 export default function MaterialsEditPage(){
     const { id } = useParams();
-    const lectureId = Number(id);
+    const lectureId = id ? (!isNaN(Number(id)) ? Number(id) : id) : null;
 
-    const {lecture, isLoading,lectureError } = useGetLecture(lectureId);
+    const { lecture, isLoading, lectureError } = useGetLecture(lectureId);
     const [data,setData] = useState<ILecture | undefined>();
     console.log(lecture)
     useEffect(() => {

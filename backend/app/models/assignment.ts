@@ -34,8 +34,8 @@ export default class Assignment extends BaseModel {
   @column()
   declare facultyId: number
 
-@column.date()
-declare dueDate: DateTime | null
+  @column.date()
+  declare dueDate: DateTime | null
 
   @column()
   declare marks: number | null
@@ -45,6 +45,8 @@ declare dueDate: DateTime | null
 
   @column()
   declare isActive: boolean
+
+
 
   @column({ columnName: 'created_by' })
   declare createdBy: number | null
@@ -69,5 +71,27 @@ declare dueDate: DateTime | null
 
   @column.dateTime()
   declare deletedAt: DateTime | null
+
+  get institute_id(): number {
+    return this.instituteId
+  }
+
+  get department_id(): number {
+    return this.departmentId
+  }
+
+  get faculty_id(): number {
+    return this.facultyId
+  }
+
+
+
+  get created_by(): number | null {
+    return this.createdBy
+  }
+
+  get updated_by(): number | null {
+    return this.updatedBy
+  }
 }
 

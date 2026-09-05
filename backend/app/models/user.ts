@@ -103,6 +103,31 @@
       return this.userType === 'student'
     }
 
+    get institute_id(): number | null {
+      if (this.instituteId !== undefined && this.instituteId !== null) return this.instituteId
+      if (this.student?.instituteId) return this.student.instituteId
+      if (this.faculty?.instituteId) return this.faculty.instituteId
+      return (this as any).$attributes?.institute_id ?? null
+    }
+
+    get departmentId(): number | null {
+      if (this.student?.departmentId) return this.student.departmentId
+      if (this.faculty?.departmentId) return this.faculty.departmentId
+      return (this as any).$attributes?.department_id ?? ((this as any).$attributes?.departmentId ?? null)
+    }
+
+    get department_id(): number | null {
+      return this.departmentId
+    }
+
+    get faculty_id(): number | null {
+      return this.facultyId ?? ((this as any).$attributes?.faculty_id ?? null)
+    }
+
+    get student_id(): number | null {
+      return this.studentId ?? ((this as any).$attributes?.student_id ?? null)
+    }
+
     // Static method to check user permissions
     static async hasPermission(userId: number, permissionKey: string): Promise<boolean> {
       const user = await User.query()

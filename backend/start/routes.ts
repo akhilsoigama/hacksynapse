@@ -24,6 +24,7 @@ const StudentController = () => import('#controllers/student_controller')
 const GovtEventsController = () => import('#controllers/govt_events_controller')
 const InstituteEventsController = () => import('#controllers/institute_events_controller')
 const AssignmentsController = () => import('#controllers/assignments_controller')
+const MaterialsController = () => import('#controllers/materials_controller')
 const QuizzesControllersController = () => import('#controllers/quizzes_controllers_controller')
 const QuizAttemptController = () => import('#controllers/quiz_attempt_controller')
 const AssignmentUploadsController = () => import('#controllers/assignment_uploads_controller')
@@ -219,6 +220,57 @@ router
       .use('show', middleware.permission([PermissionKeys.ASSIGNMENT_VIEW]))
       .use('index', middleware.permission([PermissionKeys.ASSIGNMENT_LIST]))
       .use('destroy', middleware.permission([PermissionKeys.ASSIGNMENT_DELETE]))
+
+    // ID-wise Assignment API routes
+    router
+      .get('/api/assignment/:id', [AssignmentsController, 'show'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_VIEW]))
+    router
+      .put('/api/assignment/:id', [AssignmentsController, 'update'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_UPDATE]))
+    router
+      .patch('/api/assignment/:id', [AssignmentsController, 'update'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_UPDATE]))
+    router
+      .delete('/api/assignment/:id', [AssignmentsController, 'destroy'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_DELETE]))
+
+    router
+      .get('/api/assignments/:id', [AssignmentsController, 'show'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_VIEW]))
+    router
+      .put('/api/assignments/:id', [AssignmentsController, 'update'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_UPDATE]))
+    router
+      .patch('/api/assignments/:id', [AssignmentsController, 'update'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_UPDATE]))
+    router
+      .delete('/api/assignments/:id', [AssignmentsController, 'destroy'])
+      .use(middleware.permission([PermissionKeys.ASSIGNMENT_DELETE]))
+
+    // Material Routes & ID-wise Access Control
+    router.post('/api/material/sync', [MaterialsController, 'sync'])
+    router.post('/api/materials/sync', [MaterialsController, 'sync'])
+
+    router.get('/api/material', [MaterialsController, 'index'])
+    router.post('/api/material', [MaterialsController, 'store'])
+    router.get('/api/material/:id', [MaterialsController, 'show'])
+    router.put('/api/material/:id', [MaterialsController, 'update'])
+    router.patch('/api/material/:id', [MaterialsController, 'update'])
+    router.delete('/api/material/:id', [MaterialsController, 'destroy'])
+
+    router.get('/api/materials', [MaterialsController, 'index'])
+    router.post('/api/materials', [MaterialsController, 'store'])
+    router.get('/api/materials/:id', [MaterialsController, 'show'])
+    router.put('/api/materials/:id', [MaterialsController, 'update'])
+    router.patch('/api/materials/:id', [MaterialsController, 'update'])
+    router.delete('/api/materials/:id', [MaterialsController, 'destroy'])
+
+    router
+      .resource('materials', MaterialsController)
+      .apiOnly()
+
+
 
     // Quiz Routes
     router

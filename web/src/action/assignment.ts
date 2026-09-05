@@ -2,7 +2,11 @@ import { toast } from "sonner";
 import { IAssignmentItem, IcreateAssignment } from "../types/assignment";
 import axiosInstance, { endpoints, fetcher } from "../utils/axios";
 import { useUser } from "../atoms/userAtom";
-import { useMemo } from "react";
+import { userAtom } from "../store/atoms/user.atoms";
+import { getDefaultStore } from "jotai";
+import type { User } from "../types/user";
+import { getAssignmentByIdDB, getAssignmentDB } from "../indexDB";
+import { useMemo, useState, useEffect } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useFaculties } from "./faculty";
 
@@ -21,6 +25,159 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
     }
     return fallback;
 };
+
+// ==========================================
+// Authorization Helpers (Tenant, Role & Ownership)
+// ==========================================
+
+export const getActiveUser = (userOverride?: User | null): User | null => {
+    if (userOverride) return userOverride;
+    try {
+        const storeUser = getDefaultStore().get(userAtom);
+        if (storeUser) return storeUser;
+    } catch {
+        // Ignore store retrieval error
+    }
+    if (typeof window !== "undefined") {
+        try {
+            const raw = localStorage.getItem("lms:user") || localStorage.getItem("cachedUserData");
+            if (raw) return JSON.parse(raw);
+        } catch {
+            // Ignore parse error
+        }
+    }
+    return null;
+};
+
+export const canAccessAssignment = (
+    assignment: IAssignmentItem | null | undefined,
+    user: User | null | undefined,
+    action: 'view' | 'update' | 'delete' = 'view'
+): boolean => {
+    if (!assignment || !user) {
+        return false;
+    }
+
+    const role = String(user.userType ?? user.authType ?? user.roleName ?? '').toLowerCase();
+
+    // 1. Super Admin: full access
+    if (role === 'super_admin' || user.userType === 'super_admin' || user.authType === 'super_admin') {
+        return true;
+    }
+
+    const rawUser = user as Record<string, unknown>;
+    const userInstituteId =
+        user.instituteId ??
+        rawUser.institute_id ??
+        user.data?.instituteId ??
+        (user.data as Record<string, unknown> | undefined)?.institute_id;
+    const assignmentInstituteId = assignment.instituteId ?? assignment.institute_id;
+
+    // 2. Institute Boundary Check
+    if (
+        userInstituteId === undefined ||
+        userInstituteId === null ||
+        assignmentInstituteId === undefined ||
+        assignmentInstituteId === null
+    ) {
+        return false;
+    }
+
+    if (Number(userInstituteId) !== Number(assignmentInstituteId)) {
+        return false;
+    }
+
+    // 3. Student Scope
+    if (role === 'student' || user.userType === 'student') {
+        // Students are NEVER allowed to update or delete assignments
+        if (action === 'update' || action === 'delete') {
+            return false;
+        }
+
+        const userDepartmentId =
+            user.departmentId ??
+            rawUser.department_id ??
+            user.data?.departmentId ??
+            (user.data as Record<string, unknown> | undefined)?.department_id;
+        const assignmentDepartmentId = assignment.departmentId ?? assignment.department_id;
+
+        if (
+            userDepartmentId === undefined ||
+            userDepartmentId === null ||
+            assignmentDepartmentId === undefined ||
+            assignmentDepartmentId === null
+        ) {
+            return false;
+        }
+
+        if (Number(userDepartmentId) !== Number(assignmentDepartmentId)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // 4. Institute Admin Scope: can view, update, and delete in their institute
+    if (role === 'institute' || user.userType === 'institute') {
+        return true;
+    }
+
+    // 5. Faculty Scope & Ownership
+    const currentUserId = user.id ?? user.data?.id;
+    const assignmentCreatedBy = assignment.createdBy ?? assignment.created_by;
+
+    if (
+        assignmentCreatedBy !== undefined &&
+        assignmentCreatedBy !== null &&
+        currentUserId !== undefined &&
+        currentUserId !== null
+    ) {
+        if (Number(assignmentCreatedBy) !== Number(currentUserId)) {
+            return false;
+        }
+    } else if (role === 'faculty' || user.userType === 'faculty') {
+        const userFacultyId =
+            user.facultyId ??
+            rawUser.faculty_id ??
+            user.data?.facultyId ??
+            (user.data as Record<string, unknown> | undefined)?.faculty_id;
+        const assignmentFacultyId = assignment.facultyId ?? assignment.faculty_id;
+        if (
+            userFacultyId !== undefined &&
+            assignmentFacultyId !== undefined &&
+            Number(userFacultyId) !== Number(assignmentFacultyId)
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+export const canViewAssignment = (
+    assignment: IAssignmentItem | null | undefined,
+    user: User | null | undefined
+): boolean => {
+    return canAccessAssignment(assignment, user, 'view');
+};
+
+export const canEditAssignment = (
+    assignment: IAssignmentItem | null | undefined,
+    user: User | null | undefined
+): boolean => {
+    return canAccessAssignment(assignment, user, 'update');
+};
+
+export const canDeleteAssignment = (
+    assignment: IAssignmentItem | null | undefined,
+    user: User | null | undefined
+): boolean => {
+    return canAccessAssignment(assignment, user, 'delete');
+};
+
+// ==========================================
+// Assignment API Actions
+// ==========================================
 
 export async function createAssignment(formData: IcreateAssignment) {
     const url = endpoints.assignment.create;
@@ -55,7 +212,7 @@ export function useAssignments(searchFor?: string, facultyId?: number, page = 1,
     const params = useMemo(() => {
         const queryParams = new URLSearchParams();
         if (searchFor) {
-            queryParams.append('searchFor', searchFor)
+            queryParams.append('searchFor', searchFor);
         }
         if (facultyId && user?.isSuperAdmin) {
             queryParams.append('facultyId', facultyId.toString());
@@ -66,7 +223,7 @@ export function useAssignments(searchFor?: string, facultyId?: number, page = 1,
         queryParams.append('page', String(page));
         queryParams.append('limit', String(limit));
         return queryParams.toString();
-    }, [search, searchFor, facultyId, limit, page, user?.isSuperAdmin])
+    }, [search, searchFor, facultyId, limit, page, user?.isSuperAdmin]);
 
     const urlWithParams = params ? `${BaseUrl}?${params}` : BaseUrl;
 
@@ -78,26 +235,50 @@ export function useAssignments(searchFor?: string, facultyId?: number, page = 1,
             currentPage: number;
             lastPage: number;
         };
-    }>(urlWithParams, fetcher, swrOptions)
+    }>(urlWithParams, fetcher, swrOptions);
+
+    const [offlineAssignments, setOfflineAssignments] = useState<IAssignmentItem[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        if (error || (!navigator.onLine && (!data?.data || data.data.length === 0))) {
+            getAssignmentDB(user).then((cached) => {
+                if (isMounted) {
+                    setOfflineAssignments(cached);
+                }
+            });
+        }
+        return () => {
+            isMounted = false;
+        };
+    }, [data?.data, error, user]);
+
+    const activeList = (data?.data && data.data.length > 0) ? data.data : offlineAssignments;
+
+    // Apply strict tenant, department (for students), and ownership frontend filtering
+    const filteredAssignments = useMemo(() => {
+        if (!user) return activeList;
+        return activeList.filter((item) => canViewAssignment(item, user));
+    }, [activeList, user]);
 
     const memoizedValue = useMemo(
         () => ({
-            assignments: data?.data || [],
-            assignmentLoadind: isLoading,
+            assignments: filteredAssignments,
+            assignmentLoadind: isLoading && filteredAssignments.length === 0,
             assignmentError: error,
             assessmentValidating: isValidating,
-            assessmentEmpty: !isLoading && !error && (!data?.data || data.data.length === 0),
+            assessmentEmpty: !isLoading && !error && filteredAssignments.length === 0,
             assignmentMutate: mutate,
             assignmentMeta: data?.meta,
         }),
-        [data?.data, data?.meta, error, isLoading, isValidating, mutate]
+        [data?.meta, error, filteredAssignments, isLoading, isValidating, mutate]
     );
 
     return memoizedValue;
 }
 
 export function useInstituteAssignments(searchFor?: string, page = 1, limit = 20, search?: string) {
-    const { user } = useUser()
+    const { user } = useUser();
 
     const params = useMemo(() => {
         const queryParams = new URLSearchParams();
@@ -122,22 +303,29 @@ export function useInstituteAssignments(searchFor?: string, page = 1, limit = 20
         swrOptions
     );
 
+    const filteredAssignments = useMemo(() => {
+        const raw = data?.data || [];
+        if (!user) return raw;
+        return raw.filter((item) => canViewAssignment(item, user));
+    }, [data?.data, user]);
+
     const memoizedValue = useMemo(
         () => ({
-            assignments: data?.data || [],
+            assignments: filteredAssignments,
             assignmentsLoading: isLoading,
             assignmentsError: error,
             assignmentsValidating: isValidating,
-            assignmentsEmpty: !isLoading && !error && !data?.data,
+            assignmentsEmpty: !isLoading && !error && filteredAssignments.length === 0,
             assignmentMutate: mutate,
         }),
-        [data, error, isLoading, isValidating, mutate]
+        [filteredAssignments, error, isLoading, isValidating, mutate]
     );
 
-    return memoizedValue
+    return memoizedValue;
 }
 
 export function useAssignment(assignmentId: number) {
+    const { user } = useUser();
     const url = assignmentId ? endpoints.assignment.details(assignmentId) : null;
     const { data, error, isLoading, isValidating, mutate } = useSWR<{ data: IAssignmentItem }>(
         url,
@@ -145,47 +333,193 @@ export function useAssignment(assignmentId: number) {
         swrOptions
     );
 
+    const [offlineAssignment, setOfflineAssignment] = useState<IAssignmentItem | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        if (!assignmentId) return;
+
+        // Offline fallback: verified by tenant scope in IndexedDB
+        if (error || (!navigator.onLine && !data?.data)) {
+            getAssignmentByIdDB(assignmentId, user).then((cached) => {
+                if (isMounted) {
+                    setOfflineAssignment(cached);
+                }
+            });
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [assignmentId, data?.data, error, user]);
+
+    const activeRawAssignment = data?.data || offlineAssignment;
+
+    const { authorizedAssignment, accessDeniedError } = useMemo(() => {
+        if (!activeRawAssignment) {
+            return { authorizedAssignment: null, accessDeniedError: null };
+        }
+
+        if (!user) {
+            return { authorizedAssignment: null, accessDeniedError: null };
+        }
+
+        const isAllowed = canViewAssignment(activeRawAssignment, user);
+        if (!isAllowed) {
+            return {
+                authorizedAssignment: null,
+                accessDeniedError: new Error("Access denied: You do not have permission to view this assignment."),
+            };
+        }
+
+        return { authorizedAssignment: activeRawAssignment, accessDeniedError: null };
+    }, [activeRawAssignment, user]);
+
+    const isForbidden403 = (error as { response?: { status?: number } })?.response?.status === 403;
+    const finalError = isForbidden403
+        ? new Error("Access denied: 403 Forbidden")
+        : accessDeniedError || error;
+
     const memoizedValue = useMemo(
         () => ({
-            assignment: data?.data || null,
-            isLoading,
-            assignmentError: error,
+            assignment: authorizedAssignment,
+            isLoading: isLoading && !authorizedAssignment && !finalError,
+            assignmentError: finalError,
             assignmentValidating: isValidating,
-            assignmentEmpty: !isLoading && !error && !data?.data,
-            assignmentMutate: mutate
+            assignmentEmpty: !isLoading && !finalError && !authorizedAssignment,
+            assignmentMutate: mutate,
+            isAccessDenied: Boolean(accessDeniedError || isForbidden403),
         }),
-        [data, error, isLoading, isValidating, mutate]
+        [authorizedAssignment, isLoading, finalError, isValidating, mutate, accessDeniedError, isForbidden403]
     );
 
-    return memoizedValue
+    return memoizedValue;
 }
 
-export async function updateAssignment(id: number, formData: IcreateAssignment) {
-    const url = endpoints.assignment.update(id)
+export async function updateAssignment(
+    id: number,
+    formData: IcreateAssignment,
+    userOverride?: User | null
+) {
+    const user = getActiveUser(userOverride);
+
+    // 1. Verify user authentication
+    if (!user) {
+        toast.error("Unauthorized: Please log in to update assignment.");
+        return null;
+    }
+
+    // 2. Role restriction: Students cannot update assignments
+    const role = String(user.userType ?? user.authType ?? user.roleName ?? '').toLowerCase();
+    if (role === 'student' || user.userType === 'student') {
+        toast.error("Access denied: Students are not permitted to update assignments.");
+        return null;
+    }
+
+    // 3. Institute check on payload
+    const rawUser = user as Record<string, unknown>;
+    const userInstituteId =
+        user.instituteId ??
+        rawUser.institute_id ??
+        user.data?.instituteId ??
+        (user.data as Record<string, unknown> | undefined)?.institute_id;
+    const formInstituteId = formData.instituteId ?? formData.institute_id;
+
+    if (
+        userInstituteId !== undefined &&
+        userInstituteId !== null &&
+        formInstituteId !== undefined &&
+        formInstituteId !== null &&
+        Number(userInstituteId) !== Number(formInstituteId) &&
+        role !== 'super_admin'
+    ) {
+        toast.error("Access denied: Cannot update an assignment for another institute.");
+        return null;
+    }
+
+    // 4. Verify existing record authorization if cached or available
+    try {
+        const cached = await getAssignmentByIdDB(id, user);
+        if (cached && !canEditAssignment(cached, user)) {
+            toast.error("Access denied: You do not have permission to update this assignment.");
+            return null;
+        }
+    } catch {
+        // Ignore cache verification error
+    }
+
+    const url = endpoints.assignment.update(id);
     try {
         const res = await axiosInstance.put(url, formData);
         await globalMutate((key) => typeof key === 'string' && key.startsWith(endpoints.assignment.getAll));
         await globalMutate(endpoints.assignment.details(id));
-        return res
+        return res;
     } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, 'Failed to update Assignment'))
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 403) {
+            toast.error("Access denied: 403 Forbidden - You cannot modify this assignment.");
+        } else {
+            toast.error(getApiErrorMessage(err, 'Failed to update Assignment'));
+        }
         return null;
     }
 }
 
-export async function deleteAssignment(id: number) {
-    const url = endpoints.assignment.delete(id)
+export async function deleteAssignment(
+    id: number,
+    assignmentRecord?: IAssignmentItem | null,
+    userOverride?: User | null
+) {
+    const user = getActiveUser(userOverride);
+
+    // 1. Verify user authentication
+    if (!user) {
+        toast.error("Unauthorized: Please log in to delete assignment.");
+        return false;
+    }
+
+    // 2. Role restriction: Students cannot delete assignments
+    const role = String(user.userType ?? user.authType ?? user.roleName ?? '').toLowerCase();
+    if (role === 'student' || user.userType === 'student') {
+        toast.error("Access denied: Students are not permitted to delete assignments.");
+        return false;
+    }
+
+    // 3. Verify record authorization
+    let target = assignmentRecord;
+    if (!target) {
+        try {
+            target = await getAssignmentByIdDB(id);
+        } catch {
+            // Ignore cache read error
+        }
+    }
+
+    if (target && !canDeleteAssignment(target, user)) {
+        toast.error("Access denied: You do not have permission to delete this assignment.");
+        return false;
+    }
+
+    const url = endpoints.assignment.delete(id);
     try {
         const res = await axiosInstance.delete(url);
         if (res.status === 200) {
             await globalMutate((key) => typeof key === 'string' && key.startsWith(endpoints.assignment.getAll));
+            await globalMutate(endpoints.assignment.details(id));
             return true;
         }
-    } catch {
-        return false
+        return false;
+    } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 403) {
+            toast.error("Access denied: 403 Forbidden - You cannot delete this assignment.");
+        } else {
+            toast.error(getApiErrorMessage(err, 'Failed to delete assignment'));
+        }
+        return false;
     }
 }
 
 export function useSearchAssignments(searchFor: string) {
-    return useFaculties(searchFor)
+    return useFaculties(searchFor);
 }
