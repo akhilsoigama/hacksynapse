@@ -82,7 +82,7 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
                           onClick={handleLinkClick}
                           className="block"
                         >
-                          {({ isActive }) => (
+                          {({ isActive }: { isActive: boolean }) => (
                             <SidebarLinkItem
                               isActive={isActive}
                               isSidebarExpanded={true}
@@ -110,7 +110,7 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
               </div>
             ) : (
               <NavLink key={`${subLink.to}-${index}`} to={subLink.to} onClick={handleLinkClick} className="block">
-                {({ isActive }) => (
+                {({ isActive }: { isActive: boolean }) => (
                   <SidebarLinkItem
                     isActive={isActive}
                     isSidebarExpanded={true}

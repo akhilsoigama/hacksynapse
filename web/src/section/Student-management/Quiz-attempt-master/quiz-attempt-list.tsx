@@ -165,11 +165,10 @@ const QuizAttemptList = memo(function QuizAttemptList({
                       </p>
                     </div>
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        question.isCorrect
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${question.isCorrect
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
                           : "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300"
-                      }`}
+                        }`}
                     >
                       {question.isCorrect ? "Correct" : "Wrong"}
                     </span>
@@ -179,13 +178,12 @@ const QuizAttemptList = memo(function QuizAttemptList({
                     {question.options.map((option, optionIndex) => (
                       <div
                         key={option.id ?? `${question.id}-${optionIndex}`}
-                        className={`rounded-lg border px-3 py-2 text-sm ${
-                          option.isCorrect
+                        className={`rounded-lg border px-3 py-2 text-sm ${option.isCorrect
                             ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
                             : option.isSelected
                               ? "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
                               : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span>{option.optionText}</span>

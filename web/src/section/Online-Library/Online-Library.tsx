@@ -399,7 +399,7 @@ export default function OnlineLibrary() {
           : "min-h-screen bg-slate-50 text-slate-900"
       }
     >
-      <div aria-hidden="true"/>
+      <div aria-hidden="true" />
 
       <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
         {readError && (
@@ -649,8 +649,8 @@ export default function OnlineLibrary() {
                   <ParticleButton
                     type="button"
                     className={`px-4 w-full flex gap-3 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${isDark
-                        ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
-                        : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
+                      ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
+                      : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
                       }`}
                     onClick={() => handleReadBook(doc)}
                     disabled={
@@ -721,7 +721,7 @@ export default function OnlineLibrary() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
               className={[
                 card(isDark),
                 "w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col",

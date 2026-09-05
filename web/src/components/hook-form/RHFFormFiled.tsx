@@ -323,8 +323,8 @@ const RHFFormField: React.FC<RHFFormFieldProps> = ({
             exit={{ opacity: 0, y: -4, height: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className={`mt-2 text-xs font-semibold flex items-center gap-1.5 px-2.5 py-1.5 rounded-md leading-tight ${isDark
-                ? 'text-red-300 bg-red-950/50 border border-red-800/60'
-                : 'text-red-700 bg-red-50 border border-red-200'
+              ? 'text-red-300 bg-red-950/50 border border-red-800/60'
+              : 'text-red-700 bg-red-50 border border-red-200'
               }`}
           >
             <svg
