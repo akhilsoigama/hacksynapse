@@ -2,9 +2,10 @@ import { toast } from "sonner";
 import { IAssignmentItem, IcreateAssignment } from "../types/assignment";
 import axiosInstance, { endpoints, fetcher } from "../utils/axios";
 import { useUser } from "../atoms/userAtom";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useFaculties } from "./faculty";
+import { getAssignmentDB, setAssignmentDB, addToSyncQueue } from "../indexDB/assignment";
 
 const swrOptions = {
     revalidateIfStale: false,
@@ -22,7 +23,22 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
     return fallback;
 };
 
-export async function createAssignment(formData: IcreateAssignment) {
+export async function createAssignment(formData: IcreateAssignment, userId: number = 0) {
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+        const uuid = crypto.randomUUID();
+        const payload = {
+            ...formData,
+            uuid,
+            action: 'CREATE',
+            status: 'pending',
+            instituteId: formData.instituteId,
+            departmentId: formData.departmentId,
+            createdBy: userId,
+        };
+        await addToSyncQueue(payload);
+        return { offline: true, uuid };
+    }
+
     const url = endpoints.assignment.create;
     try {
         const res = await axiosInstance.post(url, formData);
@@ -80,17 +96,37 @@ export function useAssignments(searchFor?: string, facultyId?: number, page = 1,
         };
     }>(urlWithParams, fetcher, swrOptions)
 
+    const [offlineAssignments, setOfflineAssignments] = useState<IAssignmentItem[]>([]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !navigator.onLine) {
+            getAssignmentDB().then(localData => {
+                let filtered = localData;
+                if (user?.userType === 'student') {
+                    filtered = localData.filter(item => item.instituteId === user.data?.instituteId && item.departmentId === user.data?.departmentId);
+                } else if (user?.isInstitute) {
+                    filtered = localData.filter(item => item.instituteId === user.data?.instituteId);
+                }
+                setOfflineAssignments(filtered);
+            });
+        } else if (data?.data) {
+            setAssignmentDB(data.data);
+        }
+    }, [data, user, error]);
+
+    const finalData = (typeof window !== 'undefined' && !navigator.onLine ? offlineAssignments : data?.data) || [];
+
     const memoizedValue = useMemo(
         () => ({
-            assignments: data?.data || [],
+            assignments: finalData,
             assignmentLoadind: isLoading,
             assignmentError: error,
             assessmentValidating: isValidating,
-            assessmentEmpty: !isLoading && !error && (!data?.data || data.data.length === 0),
+            assessmentEmpty: !isLoading && !error && finalData.length === 0,
             assignmentMutate: mutate,
             assignmentMeta: data?.meta,
         }),
-        [data?.data, data?.meta, error, isLoading, isValidating, mutate]
+        [finalData, data?.meta, error, isLoading, isValidating, mutate]
     );
 
     return memoizedValue;

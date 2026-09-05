@@ -1,7 +1,7 @@
 import { openDB, deleteDB, IDBPDatabase } from "idb";
 
 const DB_NAME = "ruralSpark";
-const DB_VERSION = 1.2;
+const DB_VERSION = 1.3;
 
 export const USER_STORE = "users";
 export const ROLE_STORE = "userRole";
@@ -24,6 +24,8 @@ export const STUDENT_QUERY_CACHE_STORE = "studentQueriesCache";
 export const TRANSLATION_CACHE_STORE = "translationCache";
 export const PROGRESS_CACHE_STORE = "progressCache";
 export const CLOUDINARY_CACHE_STORE = "cloudinaryCache";
+export const ASSIGNMENT_SYNC_QUEUE_STORE = "assignmentSyncQueue";
+export const GOVT_EVENT_SYNC_QUEUE_STORE = "govtEventSyncQueue";
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -42,7 +44,7 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
   if (typeof window === "undefined") return null;
 
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, { 
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
         [
           USER_STORE,
@@ -66,6 +68,8 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
           TRANSLATION_CACHE_STORE,
           PROGRESS_CACHE_STORE,
           CLOUDINARY_CACHE_STORE,
+          ASSIGNMENT_SYNC_QUEUE_STORE,
+          GOVT_EVENT_SYNC_QUEUE_STORE,
         ].forEach((storeName) => {
           if (db.objectStoreNames.contains(storeName)) {
             db.deleteObjectStore(storeName);
@@ -93,6 +97,8 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
         db.createObjectStore(TRANSLATION_CACHE_STORE, { keyPath: "key" });
         db.createObjectStore(PROGRESS_CACHE_STORE, { keyPath: "key" });
         db.createObjectStore(CLOUDINARY_CACHE_STORE, { keyPath: "key" });
+        db.createObjectStore(ASSIGNMENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
+        db.createObjectStore(GOVT_EVENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
       },
     }).catch((error) => {
       console.error("❌ DB initialization failed:", error);

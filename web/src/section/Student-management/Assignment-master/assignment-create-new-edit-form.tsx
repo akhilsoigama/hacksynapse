@@ -214,9 +214,8 @@ const AssignmentCreateNewEditForm = ({
     <FormProvider {...formMethods}>
       <div className={`min-h-screen  px-3 py-4 sm:px-4 sm:py-6 md:px-6`}>
         <div
-          className={`mx-auto max-w-full rounded-xl border p-4 sm:p-5 md:p-6 ${
-            isDark ? "border-slate-700 bg-slate-950/70" : "border-slate-200 bg-white"
-          }`}
+          className={`mx-auto max-w-full rounded-xl border p-4 sm:p-5 md:p-6 ${isDark ? "border-slate-700 bg-slate-950/70" : "border-slate-200 bg-white"
+            }`}
         >
           <h1 className={`text-3xl font-semibold ${isDark ? "text-white" : "text-slate-950/70"}`}>
             {isEdit ? <Translated text="Assignment edit" /> : <Translated text="Assignment create" />}
@@ -301,10 +300,9 @@ const AssignmentCreateNewEditForm = ({
 
               <ParticleButton
                 type="submit"
-                className={`px-4 flex  items-center justify-center py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                    isDark
-                      ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
-                      : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
+                className={`px-4 flex  items-center justify-center py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${isDark
+                    ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
+                    : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
                   }`}
                 successDuration={800}
                 disabled={isSubmitting}
