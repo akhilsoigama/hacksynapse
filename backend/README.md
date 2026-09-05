@@ -86,6 +86,32 @@ For chatbot:
 - CHATBOT_MODEL (optional, default: llama-3.3-70b-versatile)
 - TAVILY_API_KEY (optional, used only when useWebSearch is true)
 
+For pgvector-backed RAG:
+
+- EMBEDDING_API_KEY
+- EMBEDDING_API_URL (optional, defaults to the Gemini embeddings endpoint)
+- EMBEDDING_MODEL (optional, defaults to gemini-embedding-001)
+
+Run the database migrations after enabling the PostgreSQL `vector` extension.
+Instructors with lecture-create permission can ingest text at
+`POST /rag/documents` with `{ title, content, sourceType, sourceId, metadata }`.
+Balanced chatbot requests retrieve institute-scoped chunks from this store.
+
+For RAGFlow-backed chatbot responses:
+
+- RAGFLOW_URL (optional, for example `http://localhost:80`)
+- RAGFLOW_API_KEY
+- RAGFLOW_CHAT_ID (the RAGFlow chat assistant ID)
+- RAGFLOW_MODEL (optional, default: `ragflow`)
+- RAGFLOW_TIMEOUT_MS (optional, default: `30000`)
+- RAGFLOW_FALLBACK_TO_GROQ (optional, default: `true`)
+
+When the RAGFlow key and chat ID are configured, `POST /chatbot` uses
+RAGFlow's OpenAI-compatible endpoint at
+`/api/v1/chats_openai/{chat_id}/chat/completions`. The existing education
+and role-aware prompts are sent as messages. If RAGFlow is unavailable and
+fallback is enabled, the request continues through the existing Groq path.
+
 For lecture media uploads:
 
 - Cloudinary credentials configured in config/cloudinary.ts and .env
