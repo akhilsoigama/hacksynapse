@@ -72,35 +72,35 @@ function getRelativeDueDate(date?: string): string {
   return `Due in ${diff} days`;
 }
 
-  function getAttemptStatus(attempt?: QuizAttemptDetails) {
-    if (!attempt) {
-      return {
-        label: "Not Attempted",
-        dot: "bg-slate-400",
-        badge:
-          "bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300",
-        actionLabel: "Start Quiz",
-      };
-    }
-
-    if (attempt.status === "submitted" || attempt.status === "completed") {
-      return {
-        label: "Submitted",
-        dot: "bg-blue-500",
-        badge:
-          "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
-        actionLabel: "View Result",
-      };
-    }
-
+function getAttemptStatus(attempt?: QuizAttemptDetails) {
+  if (!attempt) {
     return {
-      label: "In Progress",
-      dot: "bg-emerald-500",
+      label: "Not Attempted",
+      dot: "bg-slate-400",
       badge:
-        "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-      actionLabel: "Resume Quiz",
+        "bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300",
+      actionLabel: "Start Quiz",
     };
   }
+
+  if (attempt.status === "submitted" || attempt.status === "completed") {
+    return {
+      label: "Submitted",
+      dot: "bg-blue-500",
+      badge:
+        "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+      actionLabel: "View Result",
+    };
+  }
+
+  return {
+    label: "In Progress",
+    dot: "bg-emerald-500",
+    badge:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+    actionLabel: "Resume Quiz",
+  };
+}
 
 const QuizCard = memo(function QuizCard({
   quiz,
@@ -137,33 +137,33 @@ const QuizCard = memo(function QuizCard({
   };
 
   return (
-        <div className="relative">
-          <SchemaCard
-            embedded
-            badge={quiz.subject || "Quiz"}
-            title={quiz.quizTitle}
-            description={quiz.quizDescription?.trim() || "No description available."}
-            ctaLabel={buttonLabel}
-            statusLabel={attemptStatus.label}
-            dateLabel={formatDate(quiz.dueDate)}
-            metaLabel={getRelativeDueDate(quiz.dueDate)}
-            extraFields={[
-              { label: "Class", value: quiz.std || "N/A" },
-              { label: "Questions", value: questionCount },
-              { label: "Marks", value: quiz.marks ?? "-" },
-              { label: "Attempts", value: quiz.attemptLimit ?? "-" },
-            ]}
-            imageUrl={quiz.quizBanner || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80"}
-            imageAlt={quiz.quizTitle}
-            onPrimaryAction={handlePrimaryAction}
-            showViewAction={mergedPermissions.canView}
-            showEditAction={mergedPermissions.canEdit}
-            showDeleteAction={mergedPermissions.canDelete}
-            onViewAction={() => onView?.(quiz)}
-            onEditAction={() => onEdit?.(quiz)}
-            onDeleteAction={() => onDelete?.(quiz.id)}
-          />
-        </div>
+    <div className="relative">
+      <SchemaCard
+        embedded
+        badge={quiz.subject || "Quiz"}
+        title={quiz.quizTitle}
+        description={quiz.quizDescription?.trim() || "No description available."}
+        ctaLabel={buttonLabel}
+        statusLabel={attemptStatus.label}
+        dateLabel={formatDate(quiz.dueDate)}
+        metaLabel={getRelativeDueDate(quiz.dueDate)}
+        extraFields={[
+          { label: "Class", value: quiz.std || "N/A" },
+          { label: "Questions", value: questionCount },
+          { label: "Marks", value: quiz.marks ?? "-" },
+          { label: "Attempts", value: quiz.attemptLimit ?? "-" },
+        ]}
+        imageUrl={quiz.quizBanner || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80"}
+        imageAlt={quiz.quizTitle}
+        onPrimaryAction={handlePrimaryAction}
+        showViewAction={mergedPermissions.canView}
+        showEditAction={mergedPermissions.canEdit}
+        showDeleteAction={mergedPermissions.canDelete}
+        onViewAction={() => onView?.(quiz)}
+        onEditAction={() => onEdit?.(quiz)}
+        onDeleteAction={() => onDelete?.(quiz.id)}
+      />
+    </div>
   );
 });
 

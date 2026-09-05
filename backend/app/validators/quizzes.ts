@@ -8,7 +8,7 @@ export const createQuizzezValidator = vine.compile(
     subject: vine.string().trim().maxLength(255).optional(),
     std: vine.string().trim().maxLength(255).optional(),
     dueDate: vine.string().trim().minLength(2).maxLength(100).optional(),
-    marks: vine.number().positive().optional(),
+    marks: vine.number().positive(),
     attemptLimit: vine.number().positive().optional(),
     isActive: vine.boolean().optional(),
     instituteId: vine.number().positive(),
@@ -31,7 +31,7 @@ export const createQuizzezValidator = vine.compile(
             .optional(),
         })
       )
-      .optional(),
+      .minLength(1),
   })
 )
 
@@ -71,4 +71,3 @@ export const updateQuizzezValidator = vine.compile(
       .optional(),
   })
 )
-

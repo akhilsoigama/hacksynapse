@@ -109,6 +109,8 @@ const messages = {
   quiz_update_failed: 'Failed to update Quiz',
   quiz_already_exists: 'Quiz already exists',
   quiz_already_attempted: 'Quiz already attempted by the student',
+  quiz_marks_mismatch: 'Quiz total marks must match the total marks of all questions.',
+  quiz_questions_required: 'Quiz must contain at least one question.',
   
   quiz_attempt_failed: 'Failed to attempt quiz',
   quiz_attempt_success: 'Quiz attempted successfully',
