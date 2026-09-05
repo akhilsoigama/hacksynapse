@@ -18,6 +18,7 @@ const InstitutesController = () => import('#controllers/institutes_controller')
 const DepartmentsController = () => import('#controllers/departments_controller')
 const FacultyController = () => import('#controllers/faculties_controller')
 const ChatBotController = () => import('#controllers/chatBotController')
+const RagController = () => import('#controllers/rag_controller')
 const LectureUploadsController = () => import('#controllers/lacture_uploads_controller')
 const PingController = () => import('#controllers/ping_controller')
 const StudentController = () => import('#controllers/student_controller')
@@ -53,6 +54,11 @@ router
       .post('/chatbot', [ChatBotController, 'chat'])
       .use(middleware.rateLimit({ config: RateLimitConfigs.chatbot }))
       .use(middleware.permission([PermissionKeys.CHATBOT_ACCESS]))
+
+    router
+      .post('/rag/documents', [RagController, 'ingest'])
+      .use(middleware.auth({ guards: ['adminapi', 'api'] }))
+      .use(middleware.permission([PermissionKeys.LECTURE_CREATE]))
 
     // Auth routes
     router

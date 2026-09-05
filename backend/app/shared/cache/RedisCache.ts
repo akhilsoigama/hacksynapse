@@ -7,7 +7,7 @@
 import { createClient, type RedisClientType } from 'redis'
 import env from '#start/env'
 
-const REDIS_URL = env.get('REDIS_URL', 'redis://127.0.0.1:6379')
+const REDIS_URL = env.get('REDIS_URL', '').trim()
 
 class RedisCacheService {
   private client: RedisClientType | null = null
@@ -15,6 +15,7 @@ class RedisCacheService {
   private connecting = false
 
   private async getClient(): Promise<RedisClientType | null> {
+    if (!REDIS_URL) return null
     if (this.connected && this.client) return this.client
     if (this.connecting) return null
     if (this.client) return this.client
