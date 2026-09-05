@@ -718,8 +718,8 @@ const ReadingList = () => {
                                                 whileTap={{ scale: 0.9 }}
                                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
                                                 title="View Details"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
+                                                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                                                    event.stopPropagation();
                                                     toggleReadingExpansion(reading.id);
                                                 }}
                                             >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm, FormProvider, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -501,7 +501,7 @@ const GovtServeyCreate: React.FC = () => {
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
                     className="bg-white rounded-lg shadow-xl p-4 md:p-6 w-full max-w-md"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
                   >
                     <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Add New Question</h3>
 

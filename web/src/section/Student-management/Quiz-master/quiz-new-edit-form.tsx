@@ -394,10 +394,9 @@ export default function QuizNewEditForm({
 
               <ParticleButton
                 type="submit"
-                className={`px-4 flex items-center justify-center py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                    isDark
-                      ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
-                      : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
+                className={`px-4 flex items-center justify-center py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${isDark
+                  ? "bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
+                  : "bg-slate-800/80 text-white hover:bg-slate-800 shadow-sm"
                   }`}
                 successDuration={800}
                 disabled={isSubmitting}

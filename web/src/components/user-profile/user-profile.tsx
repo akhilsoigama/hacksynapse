@@ -58,7 +58,7 @@ const UserProfile = ({ userProfile, isOnline, isLoading = false }: UserProfilePr
           typeof candidate.role.roleName === 'string'));
     const hasValidAuthType =
       candidate.authType === undefined || typeof candidate.authType === 'string';
-          
+
     return hasValidFullName && hasValidEmail && hasValidRole && hasValidAuthType;
   };
 
@@ -186,7 +186,7 @@ const UserProfile = ({ userProfile, isOnline, isLoading = false }: UserProfilePr
 
               <NavLink
                 to={`/dashboard/profile`}
-                className={({ isActive }) => `flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/60 focus-visible:ring-offset-2 ${isDark ? 'focus-visible:ring-offset-gray-900' : 'focus-visible:ring-offset-white'} ${isActive ? (isDark ? 'bg-slate-900/40 text-slate-200 shadow-sm shadow-slate-900/30' : 'bg-slate-100/60 text-slate-700 shadow-sm shadow-slate-200/40') : (isDark ? 'text-gray-300 hover:bg-gray-800/50 hover:text-gray-100' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900')}`}
+                className={({ isActive }: { isActive: boolean }) => `flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/60 focus-visible:ring-offset-2 ${isDark ? 'focus-visible:ring-offset-gray-900' : 'focus-visible:ring-offset-white'} ${isActive ? (isDark ? 'bg-slate-900/40 text-slate-200 shadow-sm shadow-slate-900/30' : 'bg-slate-100/60 text-slate-700 shadow-sm shadow-slate-200/40') : (isDark ? 'text-gray-300 hover:bg-gray-800/50 hover:text-gray-100' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900')}`}
                 onClick={toggleProfile}
               >
                 <FiUser className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mr-2 h-4 w-4 transition-colors duration-300`} />
@@ -195,7 +195,7 @@ const UserProfile = ({ userProfile, isOnline, isLoading = false }: UserProfilePr
 
               <NavLink
                 to="/dashboard/settings"
-                className={({ isActive }) => `flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/60 focus-visible:ring-offset-2 ${isDark ? 'focus-visible:ring-offset-gray-900' : 'focus-visible:ring-offset-white'} ${isActive ? (isDark ? 'bg-slate-900/40 text-slate-200 shadow-sm shadow-slate-900/30' : 'bg-slate-100/60 text-slate-700 shadow-sm shadow-slate-200/40') : (isDark ? 'text-gray-300 hover:bg-gray-800/50 hover:text-gray-100' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900')}`}
+                className={({ isActive }: { isActive: boolean }) => `flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/60 focus-visible:ring-offset-2 ${isDark ? 'focus-visible:ring-offset-gray-900' : 'focus-visible:ring-offset-white'} ${isActive ? (isDark ? 'bg-slate-900/40 text-slate-200 shadow-sm shadow-slate-900/30' : 'bg-slate-100/60 text-slate-700 shadow-sm shadow-slate-200/40') : (isDark ? 'text-gray-300 hover:bg-gray-800/50 hover:text-gray-100' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900')}`}
                 onClick={toggleProfile}
               >
                 <FiSettings className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mr-2 h-4 w-4 transition-colors duration-300`} />

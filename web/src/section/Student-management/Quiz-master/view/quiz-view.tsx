@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Calendar, CheckCircle2, FileText, GraduationCap, ListChecks } from "lucide-react";
 import { useParams } from "../../../../hooks/useParams";
-import { useTheme } from '@/theme/AppThemeProvider';import { useGetQuizById } from "../../../../action/quiz";
+import { useTheme } from '@/theme/AppThemeProvider'; import { useGetQuizById } from "../../../../action/quiz";
 import MarkdownPreview from "../../../../components/markdown/markdown";
 
 export default function QuizView() {
@@ -31,18 +31,16 @@ export default function QuizView() {
 
   return (
     <div
-      className={`min-h-screen p-4 md:p-6 ${
-        isDark
+      className={`min-h-screen p-4 md:p-6 ${isDark
           ? ""
           : "bg-linear-to-br from-slate-50 via-white to-slate-100"
-      }`}
+        }`}
     >
       <div
-        className={`mx-auto max-w-7xl rounded-2xl border p-4 shadow-xl transition-colors duration-300 md:p-6 ${
-          isDark
+        className={`mx-auto max-w-7xl rounded-2xl border p-4 shadow-xl transition-colors duration-300 md:p-6 ${isDark
             ? "border-slate-700  text-slate-100 shadow-black/30"
             : "border-slate-200 bg-white text-slate-900 shadow-slate-200/80"
-        }`}
+          }`}
       >
         <div className="mb-6 rounded-2xl border border-teal-600/20 p-4">
           {quiz.quizBanner ? (
@@ -116,11 +114,10 @@ export default function QuizView() {
           {(quiz.questions || []).map((question, questionIndex) => (
             <div
               key={question.id}
-              className={`rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:shadow-md md:p-5 ${
-                isDark
+              className={`rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:shadow-md md:p-5 ${isDark
                   ? "border-slate-700  hover:border-slate-600"
                   : "border-slate-200 bg-white hover:border-slate-300"
-              }`}
+                }`}
             >
               <div className="mb-2 flex items-start justify-between gap-3">
                 <h2 className="text-base font-semibold leading-snug md:text-lg">
@@ -141,13 +138,12 @@ export default function QuizView() {
                 {(question.options || []).map((option) => (
                   <li
                     key={option.id}
-                    className={`rounded-xl border px-3 py-2 text-sm transition-all duration-200 ${
-                      option.isCorrect
+                    className={`rounded-xl border px-3 py-2 text-sm transition-all duration-200 ${option.isCorrect
                         ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                         : isDark
                           ? "border-slate-700 bg-slate-900/40"
                           : "border-slate-200 bg-slate-50"
-                    }`}
+                      }`}
                   >
                     <MarkdownPreview content={option.optionText || "-"} />
                   </li>
