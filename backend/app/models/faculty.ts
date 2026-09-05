@@ -79,4 +79,12 @@ export default class Faculty extends BaseModel {
   async verifyPassword(password: string): Promise<boolean> {
     return await hash.verify(this.facultyPassword, password) 
   }
+
+  get institute_id(): number {
+    return this.instituteId
+  }
+
+  get department_id(): number {
+    return this.departmentId
+  }
 }

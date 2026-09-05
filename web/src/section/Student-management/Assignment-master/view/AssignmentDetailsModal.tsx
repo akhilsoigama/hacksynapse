@@ -1,5 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
-import { useTheme } from '@/theme/AppThemeProvider';import { IAssignmentItem } from "../../../../types/assignment";
+import { useTheme } from '@/theme/AppThemeProvider';
+import { IAssignmentItem } from "../../../../types/assignment";
+import { useUser } from "../../../../atoms/userAtom";
+import { canViewAssignment, canEditAssignment } from "../../../../action/assignment";
 
 type AssignmentWithCreatedAt = IAssignmentItem & {
     createdAt?: string | Date;
@@ -63,6 +66,7 @@ const formatDate = (date: Date | string) => {
 };
 
 const AssignmentDetailsModal = ({ isOpen, assignment, onClose, onEdit }: AssignmentDetailsModalProps) => {
+    const { user } = useUser();
     const { mode } = useTheme();
     const isDark = mode === "dark";
     const [isEntering, setIsEntering] = useState(false);
@@ -82,7 +86,7 @@ const AssignmentDetailsModal = ({ isOpen, assignment, onClose, onEdit }: Assignm
         return undefined;
     }, [isOpen]);
 
-    if (!isOpen || !assignment) {
+    if (!isOpen || !assignment || !user || !canViewAssignment(assignment, user)) {
         return null;
     }
 
@@ -161,13 +165,15 @@ const AssignmentDetailsModal = ({ isOpen, assignment, onClose, onEdit }: Assignm
                     >
                         Close
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => onEdit(assignment.id)}
-                        className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95"
-                    >
-                        Edit
-                    </button>
+                    {canEditAssignment(assignment, user) && (
+                        <button
+                            type="button"
+                            onClick={() => onEdit(assignment.id)}
+                            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-95"
+                        >
+                            Edit
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -3,6 +3,7 @@ import Assignment from '#models/assignment'
 type AssignmentListFilters = {
   facultyId?: number
   instituteId?: number
+  departmentId?: number
   search?: string
   onlyActive?: boolean
   withDeleted?: boolean
@@ -45,6 +46,10 @@ export default class AssignmentRepository {
 
     if (filters.instituteId) {
       query.where('institute_id', filters.instituteId)
+    }
+
+    if (filters.departmentId) {
+      query.where('department_id', filters.departmentId)
     }
 
     if (filters.onlyActive) {

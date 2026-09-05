@@ -23,7 +23,15 @@ export type IAssignmentItem = {
         departmentName: string
     }
     isActive: boolean
-
+    createdBy?: number | null
+    created_by?: number | null
+    institute_id?: number | null
+    department_id?: number | null
+    faculty_id?: number | null
+    updatedBy?: number | null
+    updated_by?: number | null
+    createdAt?: string | Date
+    updatedAt?: string | Date
 }
 
 export type IcreateAssignment = {
@@ -43,7 +51,11 @@ export type IcreateAssignment = {
 
     departmentId: number
     isActive: boolean
-
+    createdBy?: number | null
+    created_by?: number | null
+    institute_id?: number | null
+    department_id?: number | null
+    faculty_id?: number | null
 }
 
 export type IupdateAssignment = {
@@ -63,5 +75,9 @@ export type IupdateAssignment = {
 
     departmentId: number
     isActive: boolean
-
+    createdBy?: number | null
+    created_by?: number | null
+    institute_id?: number | null
+    department_id?: number | null
+    faculty_id?: number | null
 }

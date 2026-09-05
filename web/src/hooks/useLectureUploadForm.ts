@@ -139,7 +139,7 @@ export const useLessonForm = (currentData?: ILecture) => {
         contentUrl: currentData.contentUrl || '',
         durationInSeconds: currentData.durationInSeconds || undefined,
         textContent: currentData.textContent || '',
-        facultyId: currentData?.facultyId,
+        facultyId: currentData?.facultyId ?? undefined,
       });
     } else {
       reset({
