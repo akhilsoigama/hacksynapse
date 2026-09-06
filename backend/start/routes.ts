@@ -60,7 +60,15 @@ for (const prefix of ['/api/rag', '/rag']) {
   router.delete(`${prefix}/courses/:id`, [RagController, 'deleteCourse'])
   router.post(`${prefix}/sync`, [RagController, 'syncLms'])
   router.get(`${prefix}/stats`, [RagController, 'stats'])
-  router.post(`${prefix}/generate-quiz`, [RagController, 'generateQuiz'])
+
+  // generate-quiz requires authentication — move it into the auth group below
+}
+
+// RAG generate-quiz: authenticated (students + faculty + admin all call this)
+for (const prefix of ['/api/rag', '/rag']) {
+  router
+    .post(`${prefix}/generate-quiz`, [RagController, 'generateQuiz'])
+    .use(middleware.auth({ guards: ['adminapi', 'api'] }))
 }
 
 router

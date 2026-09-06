@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTheme } from '@/theme/AppThemeProvider';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,13 +7,24 @@ import {
   PlayCircle,
   Folder,
   Edit,
+  Help,
   VideoLibrary,
   KeyboardArrowDown,
   KeyboardArrowUp,
+  Quiz,
+  CheckCircle,
+  Cancel,
+  EmojiEvents,
 } from '@mui/icons-material';
+import { Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { VideoPlayer } from '../rag/rag-course-list';
 import { IRagCourse } from '@/types/ragCourse';
+import CourseQuizModal from '@/section/Skill-learning/rag/CourseQuizModal';
+import { useUser } from '@/atoms/userAtom';
+import { generateCourseQuizService, IQuizQuestion, IQuizResult } from '@/action/ragCourse';
+import { certificateService, ICertificate } from '@/services/certificateService';
+import CertificateModal from '@/components/certificate/CertificateModal';
 
 interface CourseDetailModalProps {
   course: IRagCourse;
@@ -23,6 +34,8 @@ interface CourseDetailModalProps {
 export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
   const { mode } = useTheme();
   const isDark = mode === 'dark';
+  const { isSuperAdmin, isStudent, user } = useUser();
+  const isAdmin = isSuperAdmin || user?.authType === 'admin' || user?.authType === 'super_admin';
   const navigate = useNavigate();
 
   const subModules = course.subModules || [];
@@ -85,6 +98,96 @@ export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
     });
     return initial;
   });
+const [showQuizModal, setShowQuizModal] = useState(false);
+
+  // Student quiz state
+  const [videoEnded, setVideoEnded] = useState(false);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizData, setQuizData] = useState<IQuizResult | null>(null);
+  const [studentAnswers, setStudentAnswers] = useState<Record<number, string>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const quizSectionRef = useRef<HTMLDivElement>(null);
+
+  // Certificate state
+  const [earnedCertificate, setEarnedCertificate] = useState<ICertificate | null>(() => {
+    return certificateService.getCertificateByCourse(user?.id || user?.studentId || '1', course.id);
+  });
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+
+  // Use ref to avoid stale closure inside callbacks
+  const videoEndedRef = useRef(false);
+
+  const triggerQuizFlow = useCallback(async () => {
+    if (!isStudent) return;
+    if (videoEndedRef.current) return; // already triggered
+    videoEndedRef.current = true;
+    setVideoEnded(true);
+
+    // Auto-load quiz
+    setQuizLoading(true);
+    const result = await generateCourseQuizService({
+      courseId: course.id,
+      videoUrl: course.videoUrl,
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      subModules: course.subModules,
+      numQuestions: 5,
+    });
+    setQuizData(result);
+    setQuizLoading(false);
+    setStudentAnswers({});
+    setQuizSubmitted(false);
+
+    // Scroll to quiz section
+    setTimeout(() => {
+      quizSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
+  }, [isStudent, course]);
+
+  // Alias for VideoPlayer onEnded prop (uploaded videos)
+  const handleVideoEnded = triggerQuizFlow;
+
+  const handleSelectAnswer = (qIdx: number, option: string) => {
+    if (quizSubmitted) return;
+    setStudentAnswers((prev) => ({ ...prev, [qIdx]: option }));
+  };
+
+  const questions: IQuizQuestion[] = quizData?.quiz?.questions || [];
+
+  const calcScore = () => {
+    if (!questions.length) return { correct: 0, total: 0, pct: 0 };
+    let correct = 0;
+    questions.forEach((q, idx) => {
+      const ans = studentAnswers[idx];
+      if (ans && ans.trim().charAt(0).toUpperCase() === q.correctAnswer.trim().charAt(0).toUpperCase()) {
+        correct++;
+      }
+    });
+    return { correct, total: questions.length, pct: Math.round((correct / questions.length) * 100) };
+  };
+
+  const handleSubmitQuiz = () => {
+    setQuizSubmitted(true);
+    const { pct } = calcScore();
+    if (pct >= 80) {
+      const cert = certificateService.issueCertificate({
+        studentId: user?.id || user?.studentId || '1',
+        studentName: user?.fullName || 'Testing Student',
+        courseId: course.id,
+        courseTitle: course.title,
+        category: course.category,
+        score: pct,
+      });
+      setEarnedCertificate(cert);
+    }
+  };
+
+  const handleRetakeQuiz = () => {
+    setStudentAnswers({});
+    setQuizSubmitted(false);
+  };
+
 
   const toggleModule = (idx: number) => {
     setExpandedModules((prev) => ({
@@ -186,6 +289,42 @@ export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
           </span>
         </div>
 
+        {/* Certificate Earned Banner if already unlocked */}
+        {isStudent && earnedCertificate && (
+          <div
+            className={cn(
+              'flex items-center justify-between px-4 py-3 rounded-2xl border mb-4 shadow-sm transition-all',
+              isDark
+                ? 'bg-gradient-to-r from-amber-950/40 via-orange-950/30 to-amber-950/40 border-amber-500/40 text-amber-200'
+                : 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-amber-300 text-amber-900'
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <span className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <EmojiEvents sx={{ fontSize: 24 }} />
+              </span>
+              <div>
+                <p className="text-xs font-bold flex items-center gap-2">
+                  <span>🏆 Official Certificate of Completion Earned!</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                    {earnedCertificate.id}
+                  </span>
+                </p>
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  Issued on {earnedCertificate.issueDate} with {earnedCertificate.score}% score.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCertModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-md transition-all cursor-pointer shrink-0"
+            >
+              View Certificate
+            </button>
+          </div>
+        )}
+
         {/* Title */}
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">
           {course.title}
@@ -254,8 +393,39 @@ export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
                 videoType={activeVideo.videoType}
                 title={activeVideo.title}
                 autoPlay={activeVideo.autoPlay}
+                onEnded={handleVideoEnded}
               />
             </div>
+
+            {/* Mark as Complete button — shown to students who haven't triggered quiz yet */}
+            {isStudent && !videoEnded && (
+              <div className="flex justify-end mt-2 px-1">
+                <button
+                  type="button"
+                  onClick={triggerQuizFlow}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all shadow-sm',
+                    isDark
+                      ? 'bg-emerald-900/40 border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/70 hover:text-emerald-200'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                  )}
+                >
+                  <CheckCircle sx={{ fontSize: 15 }} />
+                  Mark as Complete & Take Quiz
+                </button>
+              </div>
+            )}
+
+            {/* Quiz loading indicator inline */}
+            {isStudent && videoEnded && quizLoading && (
+              <div className={cn(
+                'flex items-center gap-2 mt-2 px-3 py-2 rounded-xl border text-xs font-medium',
+                isDark ? 'border-indigo-800/60 bg-indigo-950/30 text-indigo-300' : 'border-indigo-200 bg-indigo-50 text-indigo-600'
+              )}>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Generating your quiz... scroll down when ready!
+              </div>
+            )}
           </div>
         ) : (
           <div
@@ -665,6 +835,296 @@ export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
           )}
         </div>
 
+        {/* ── Student Quiz Section (appears after video ends) ─────────────── */}
+        {isStudent && videoEnded && (
+          <div
+            ref={quizSectionRef}
+            className={cn(
+              'rounded-2xl border overflow-hidden mb-6 transition-all',
+              isDark ? 'border-indigo-800/60 bg-indigo-950/30' : 'border-indigo-200 bg-indigo-50/60'
+            )}
+          >
+            {/* Quiz Header */}
+            <div
+              className={cn(
+                'flex items-center gap-3 px-5 py-4 border-b',
+                isDark ? 'border-indigo-800/50 bg-indigo-950/60' : 'border-indigo-200 bg-indigo-100/60'
+              )}
+            >
+              <div className="p-2 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white shadow-md">
+                <Quiz sx={{ fontSize: 20 }} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  <span>Course Quiz</span>
+                  <span
+                    className={cn(
+                      'px-2 py-0.5 rounded-full text-[10px] font-semibold border',
+                      isDark
+                        ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                        : 'bg-indigo-100 text-indigo-600 border-indigo-200'
+                    )}
+                  >
+                    AI Generated
+                  </span>
+                </h3>
+                <p className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                  Great job finishing the video! Test your knowledge below.
+                </p>
+              </div>
+              {quizSubmitted && (() => {
+                const { pct } = calcScore();
+                return (
+                  <div className="ml-auto flex items-center gap-2">
+                    <EmojiEvents
+                      className={pct >= 70 ? 'text-yellow-400' : 'text-slate-400'}
+                      fontSize="medium"
+                    />
+                    <span
+                      className={cn(
+                        'text-lg font-bold',
+                        pct >= 70 ? 'text-emerald-400' : 'text-rose-400'
+                      )}
+                    >
+                      {pct}%
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Loading */}
+            {quizLoading && (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <div className="p-3 rounded-full bg-indigo-500/10">
+                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                </div>
+                <p className={cn('text-sm font-medium', isDark ? 'text-slate-300' : 'text-slate-600')}>
+                  Generating quiz from course content...
+                </p>
+                <p className={cn('text-xs', isDark ? 'text-slate-500' : 'text-slate-400')}>
+                  Powered by AI + RAG
+                </p>
+              </div>
+            )}
+
+            {/* Score Card after submission */}
+            {!quizLoading && quizSubmitted && (() => {
+              const { correct, total, pct } = calcScore();
+              const isPassed = pct >= 80;
+              return (
+                <div
+                  className={cn(
+                    'mx-5 mt-5 p-5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all',
+                    isPassed
+                      ? isDark
+                        ? 'bg-gradient-to-r from-emerald-950/60 to-teal-950/60 border-emerald-500/50 text-emerald-200'
+                        : 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-300 text-emerald-800'
+                      : isDark
+                        ? 'bg-rose-950/40 border-rose-700/50 text-rose-300'
+                        : 'bg-rose-50 border-rose-300 text-rose-700'
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-bold">
+                        {isPassed ? '🎉 Outstanding Achievement! Certificate Unlocked!' : '📚 Keep practicing!'}
+                      </p>
+                      {isPassed && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500 text-slate-950">
+                          ≥80% Passed
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-1 opacity-90">
+                      You scored {correct} out of {total} ({pct}%).
+                      {isPassed
+                        ? ' You have earned the official RuralSpark Certificate of Completion!'
+                        : ' You need 80% or more to unlock your official Certificate.'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {isPassed && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCertModalOpen(true)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <EmojiEvents sx={{ fontSize: 18 }} />
+                        <span>View & Download Certificate</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleRetakeQuiz}
+                      className={cn(
+                        'px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors shrink-0',
+                        isDark
+                          ? 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      )}
+                    >
+                      Retake Quiz
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Questions */}
+            {!quizLoading && questions.length > 0 && (
+              <div className="p-5 space-y-5">
+                {questions.map((q, qIdx) => {
+                  const selected = studentAnswers[qIdx];
+                  const isCorrect =
+                    quizSubmitted &&
+                    selected?.trim().charAt(0).toUpperCase() ===
+                      q.correctAnswer.trim().charAt(0).toUpperCase();
+                  const isWrong = quizSubmitted && selected && !isCorrect;
+
+                  return (
+                    <div
+                      key={qIdx}
+                      className={cn(
+                        'rounded-xl border p-4 transition-all',
+                        quizSubmitted && isCorrect
+                          ? isDark
+                            ? 'border-emerald-600/50 bg-emerald-950/30'
+                            : 'border-emerald-300 bg-emerald-50'
+                          : quizSubmitted && isWrong
+                            ? isDark
+                              ? 'border-rose-600/50 bg-rose-950/30'
+                              : 'border-rose-300 bg-rose-50'
+                            : isDark
+                              ? 'border-slate-700/50 bg-slate-800/30'
+                              : 'border-slate-200 bg-white'
+                      )}
+                    >
+                      {/* Question text */}
+                      <p className="text-sm font-semibold mb-3 flex gap-2">
+                        <span
+                          className={cn(
+                            'text-xs font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5',
+                            isDark ? 'bg-indigo-900/60 text-indigo-300' : 'bg-indigo-100 text-indigo-600'
+                          )}
+                        >
+                          Q{qIdx + 1}
+                        </span>
+                        <span>{q.question}</span>
+                      </p>
+
+                      {/* Options */}
+                      <div className="space-y-2">
+                        {q.options.map((opt, optIdx) => {
+                          const optLetter = opt.trim().charAt(0).toUpperCase();
+                          const correctLetter = q.correctAnswer.trim().charAt(0).toUpperCase();
+                          const isThisCorrect = optLetter === correctLetter;
+                          const isSelected = selected === opt;
+
+                          let optStyle = '';
+                          if (quizSubmitted) {
+                            if (isThisCorrect) {
+                              optStyle = isDark
+                                ? 'border-emerald-500/70 bg-emerald-950/50 text-emerald-300'
+                                : 'border-emerald-400 bg-emerald-50 text-emerald-800';
+                            } else if (isSelected && !isThisCorrect) {
+                              optStyle = isDark
+                                ? 'border-rose-500/70 bg-rose-950/50 text-rose-300'
+                                : 'border-rose-400 bg-rose-50 text-rose-700';
+                            } else {
+                              optStyle = isDark
+                                ? 'border-slate-700 bg-slate-900/50 text-slate-500'
+                                : 'border-slate-200 bg-slate-50 text-slate-400';
+                            }
+                          } else {
+                            optStyle = isSelected
+                              ? isDark
+                                ? 'border-indigo-500/70 bg-indigo-950/50 text-indigo-200 ring-1 ring-indigo-500/40'
+                                : 'border-indigo-400 bg-indigo-50 text-indigo-800 ring-1 ring-indigo-400/30'
+                              : isDark
+                                ? 'border-slate-700 bg-slate-800/50 text-slate-300 hover:border-indigo-600/60 hover:bg-indigo-950/30'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/60';
+                          }
+
+                          return (
+                            <button
+                              key={optIdx}
+                              type="button"
+                              disabled={quizSubmitted}
+                              onClick={() => handleSelectAnswer(qIdx, opt)}
+                              className={cn(
+                                'w-full text-left px-3 py-2.5 rounded-lg border text-xs font-medium transition-all flex items-center justify-between gap-2',
+                                optStyle,
+                                !quizSubmitted && 'cursor-pointer'
+                              )}
+                            >
+                              <span>{opt}</span>
+                              {quizSubmitted && isThisCorrect && (
+                                <CheckCircle className="text-emerald-500 shrink-0" sx={{ fontSize: 16 }} />
+                              )}
+                              {quizSubmitted && isSelected && !isThisCorrect && (
+                                <Cancel className="text-rose-500 shrink-0" sx={{ fontSize: 16 }} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Explanation after submit */}
+                      {quizSubmitted && q.explanation && (
+                        <div
+                          className={cn(
+                            'mt-3 p-2.5 rounded-lg border text-xs leading-relaxed',
+                            isDark
+                              ? 'bg-slate-900/60 border-slate-700/50 text-slate-400'
+                              : 'bg-slate-50 border-slate-200 text-slate-500'
+                          )}
+                        >
+                          <span className={cn('font-bold mr-1', isDark ? 'text-indigo-400' : 'text-indigo-600')}>
+                            💡 Explanation:
+                          </span>
+                          {q.explanation}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Submit Button */}
+                {!quizSubmitted && (
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      disabled={Object.keys(studentAnswers).length < questions.length}
+                      onClick={handleSubmitQuiz}
+                      className={cn(
+                        'flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all',
+                        Object.keys(studentAnswers).length < questions.length
+                          ? isDark
+                            ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 shadow-indigo-500/30'
+                      )}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Submit Quiz ({Object.keys(studentAnswers).length}/{questions.length} answered)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* No questions */}
+            {!quizLoading && !quizData && (
+              <div className={cn('text-center py-8 text-sm', isDark ? 'text-slate-500' : 'text-slate-400')}>
+                <Help sx={{ fontSize: 36 }} className="mx-auto mb-2 opacity-40" />
+                <p>Could not generate quiz for this course.</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tags */}
         {Array.isArray(course.tags) && course.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6 pt-4 border-t border-slate-700/40">
@@ -699,7 +1159,21 @@ export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
             <Edit className="w-3.5 h-3.5" />
             Edit Course & Insert Modules
           </button>
-
+{ (isSuperAdmin || isAdmin) && (
+  <button
+    type="button"
+    onClick={() => setShowQuizModal(true)}
+    className={cn(
+      'flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium border transition-colors',
+      isDark
+        ? 'bg-indigo-900 text-indigo-200 border-indigo-700 hover:bg-indigo-800 hover:text-white'
+        : 'bg-indigo-100 text-indigo-700 border-indigo-300 hover:bg-indigo-200'
+    )}
+  >
+    <Help className="w-3.5 h-3.5" />
+    Show Generated Quiz
+  </button>
+)}
           <button
             type="button"
             onClick={onClose}
@@ -708,6 +1182,15 @@ export function CourseDetailModal({ course, onClose }: CourseDetailModalProps) {
             Close
           </button>
         </div>
+{showQuizModal && (
+  <CourseQuizModal isOpen={showQuizModal} onClose={() => setShowQuizModal(false)} course={course} />
+)}
+        {/* Certificate Modal */}
+        <CertificateModal
+          certificate={earnedCertificate}
+          isOpen={isCertModalOpen}
+          onClose={() => setIsCertModalOpen(false)}
+        />
       </div>
     </div>
   );

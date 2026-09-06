@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaGraduationCap,
@@ -102,21 +102,52 @@ export function getCleanYoutubeWatchUrl(url?: string): string | null {
 export interface VideoPlayerProps {
   videoType?: 'youtube' | 'uploaded';
   videoUrl?: string;
+  url?: string;
   title: string;
+  autoPlay?: boolean;
+  onEnded?: () => void;
 }
 
 export function VideoPlayer({
   videoType,
   videoUrl,
+  url: urlProp,
   title,
+  autoPlay,
+  onEnded,
 }: VideoPlayerProps) {
   const { mode } = useTheme();
   const isDark = mode === 'dark';
   const [copied, setCopied] = useState(false);
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
 
-  if (!videoUrl || !videoUrl.trim()) return null;
+  // Support both videoUrl and url prop
+  const resolvedUrl = videoUrl || urlProp;
 
-  const url = videoUrl.trim();
+  // YouTube postMessage listener for onEnded
+  React.useEffect(() => {
+    if (!onEnded) return;
+    const handler = (event: MessageEvent) => {
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        // YouTube Iframe API: playerState 0 = ended
+        if (data?.event === 'onStateChange' && data?.info === 0) {
+          onEnded();
+        }
+      } catch {
+        // ignore non-JSON messages
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onEnded]);
+
+  if (!resolvedUrl || !resolvedUrl.trim()) return null;
+
+  // reassign videoUrl to resolvedUrl for rest of function
+  const videoUrl2 = resolvedUrl;
+
+  const url = videoUrl2.trim();
   const youtubeId = extractYoutubeId(url);
   const playlistId = extractYoutubePlaylistId(url);
 
@@ -130,7 +161,13 @@ export function VideoPlayer({
         url.toLowerCase().includes('youtube.com') ||
         url.toLowerCase().includes('youtu.be');
 
-  const embedUrl = isYoutube ? getYoutubeEmbedUrl(url) : null;
+  // Append enablejsapi=1 and optional autoplay so YouTube fires postMessage events
+  const baseEmbedUrl = isYoutube ? getYoutubeEmbedUrl(url) : null;
+  const embedUrl = baseEmbedUrl
+    ? baseEmbedUrl +
+      (baseEmbedUrl.includes('?') ? '&' : '?') +
+      `enablejsapi=1${autoPlay ? '&autoplay=1' : ''}`
+    : null;
   const canonicalUrl = getCleanYoutubeWatchUrl(url) || url;
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -145,6 +182,7 @@ export function VideoPlayer({
       <div className="space-y-2">
         <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-black shadow-md border border-slate-700/40">
           <iframe
+            ref={iframeRef}
             className="absolute inset-0 w-full h-full border-0"
             src={embedUrl}
             title={title || 'Course Video Player'}
@@ -196,7 +234,9 @@ export function VideoPlayer({
           className="w-full max-h-[420px] rounded-xl"
           src={directVideoUrl}
           controls
+          autoPlay={autoPlay}
           preload="metadata"
+          onEnded={onEnded}
         />
       </div>
 

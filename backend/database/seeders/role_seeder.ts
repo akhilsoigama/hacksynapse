@@ -325,6 +325,15 @@ export default class extends BaseSeeder {
         PermissionKeys.SKILL_LEARNING_ACCESS,
         PermissionKeys.SKILL_RAG_ACCESS,
         PermissionKeys.SKILL_RAG_COURSE_VIEW,
+
+        // Skill categories (view only for students)
+        PermissionKeys.SKILL_SPOKEN_ENGLISH_VIEW,
+        PermissionKeys.SKILL_COMPUTER_VIEW,
+        PermissionKeys.SKILL_CODING_VIEW,
+        PermissionKeys.SKILL_DIGITAL_VIEW,
+        PermissionKeys.SKILL_CAREER_VIEW,
+        PermissionKeys.SKILL_SOFTSKILL_VIEW,
+        PermissionKeys.SKILL_GOVT_EXAM_VIEW,
       ],
     }
 

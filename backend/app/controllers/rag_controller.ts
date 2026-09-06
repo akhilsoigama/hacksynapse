@@ -1,6 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import RagService, { CourseData } from '#services/rag_service'
+import { PermissionKeys } from '#database/constants/permission'
+import User from '#models/user'
 
 @inject()
 export default class RagController {
@@ -276,7 +278,34 @@ export default class RagController {
    * Generate interactive quiz using YouTube metadata and RAG context
    * POST /api/rag/generate-quiz or POST /rag/generate-quiz
    */
-  public async generateQuiz({ request, response }: HttpContext) {
+  public async generateQuiz(ctx: HttpContext) {
+    const { auth, request, response } = ctx
+
+    // Support all ways user is injected by AuthMiddleware or Adonis auth guards
+    const user =
+      ((ctx as unknown & { user?: User; authUser?: User }).user ||
+      (ctx as unknown & { user?: User; authUser?: User }).authUser ||
+      (ctx.request as unknown & { user?: User }).user ||
+      auth.user ||
+      (await this.resolveUser(auth))) as (User & { id?: number; userType?: string }) | undefined
+
+    if (!user?.id) {
+      return response.unauthorized({ success: false, message: 'User not authenticated' })
+    }
+
+    const isAdmin =
+      user.userType && ['super_admin', 'admin', 'system_admin'].includes(user.userType)
+    const allowed =
+      isAdmin ||
+      (await User.hasPermission(user.id, PermissionKeys.SKILL_RAG_ACCESS).catch(() => false))
+
+    if (!allowed) {
+      return response.forbidden({
+        success: false,
+        message: 'You do not have permission to access this resource',
+      })
+    }
+
     const body = request.only([
       'videoUrl',
       'courseId',

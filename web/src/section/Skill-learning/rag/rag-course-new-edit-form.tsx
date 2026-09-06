@@ -244,18 +244,18 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
     : 'border border-slate-200 bg-white shadow-slate-200/80';
 
   const sectionHeading = `text-sm font-semibold tracking-wider uppercase ${
-    isDark ? 'text-indigo-400' : 'text-indigo-600'
+    isDark ? 'text-slate-400' : 'text-slate-600'
   }`;
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="w-full max-w-full mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 pb-2 border-b border-slate-700/40">
+      <div className="flex items-center justify-between gap-4 pb-2 ">
         <div>
           <button
             type="button"
             onClick={() => router.push('/dashboard/skills/rag')}
-            className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors mb-1"
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-300 transition-colors mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Courses
           </button>
@@ -388,7 +388,7 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
                   />
 
                   {mainEmbedUrl && (
-                    <div className="rounded-lg border border-indigo-500/30 bg-slate-900/60 p-3 space-y-2">
+                    <div className="rounded-lg border border-slate-500/30 bg-slate-900/60 p-3 space-y-2">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
                         <Check className="w-3.5 h-3.5" />
                         <span>Platform Player Preview (Plays directly in this platform)</span>
@@ -427,7 +427,7 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
                 <ParticleButton
                   type="button"
                   onClick={addModule}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-sm"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white transition-all shadow-sm"
                   successDuration={200}
                 >
                   <FolderPlus className="w-3.5 h-3.5" /> Add Module
@@ -472,7 +472,7 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
               <ParticleButton
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-semibold text-sm transition-all shadow-md disabled:opacity-50"
                 successDuration={500}
               >
                 <FaSave className="w-4 h-4" />
