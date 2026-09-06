@@ -262,4 +262,30 @@ export default class RagController {
       })
     }
   }
+
+  /**
+   * Generate interactive quiz using YouTube metadata and RAG context
+   * POST /api/rag/generate-quiz or POST /rag/generate-quiz
+   */
+  public async generateQuiz({ request, response }: HttpContext) {
+    const body = request.only([
+      'videoUrl',
+      'courseId',
+      'title',
+      'description',
+      'category',
+      'subModules',
+      'numQuestions',
+    ])
+
+    try {
+      const result = await this.ragService.generateQuizFromYoutubeAndRag(body)
+      return response.json(result)
+    } catch (error: unknown) {
+      return response.internalServerError({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to generate quiz',
+      })
+    }
+  }
 }

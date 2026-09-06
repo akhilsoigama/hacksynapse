@@ -9,6 +9,7 @@ import {
   Check,
   Copy,
   PlayCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '@/theme/AppThemeProvider';
 import CommonDataList, {
@@ -16,6 +17,7 @@ import CommonDataList, {
 } from '@/components/common/commanDataList';
 import { IRagCourse } from '@/types/ragCourse';
 import { useCourses } from '@/action/ragCourse';
+import CourseQuizModal from './CourseQuizModal';
 
 /* -------------------------------------------------------------------------- */
 /*  YouTube URL helpers                                                       */
@@ -263,6 +265,9 @@ export default function RagCourseList({
   const navigate = useNavigate();
   const fetched = useCourses();
 
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [selectedQuizCourse, setSelectedQuizCourse] = useState<IRagCourse | null>(null);
+
   const courses = passedCourses ?? fetched.courses;
   const isLoading = passedIsLoading ?? fetched.coursesLoading;
 
@@ -315,7 +320,7 @@ export default function RagCourseList({
       {
         header: 'Course Title',
         accessor: 'title' as keyof TransformedCourse,
-        width: '26%',
+        width: '24%',
         render: (item: TransformedCourse) => (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center shrink-0">
@@ -335,7 +340,7 @@ export default function RagCourseList({
       {
         header: 'Category',
         accessor: 'category' as keyof TransformedCourse,
-        width: '18%',
+        width: '16%',
         render: (item: TransformedCourse) => (
           <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             {item.category}
@@ -382,6 +387,24 @@ export default function RagCourseList({
         ),
       },
       {
+        header: 'AI Quiz',
+        accessor: 'id' as keyof TransformedCourse,
+        width: '14%',
+        render: (item: TransformedCourse) => (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedQuizCourse(item.raw);
+              setQuizModalOpen(true);
+            }}
+            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> AI Quiz
+          </button>
+        ),
+      },
+      {
         header: 'Created Date',
         accessor: 'createdAt' as keyof TransformedCourse,
         width: '12%',
@@ -393,6 +416,33 @@ export default function RagCourseList({
   /* Single Unified View Modal definition */
   const viewModalFields: ModalField<TransformedCourse>[] = useMemo(
     () => [
+      {
+        label: 'Interactive AI Quiz (YouTube & RAG)',
+        type: 'custom' as const,
+        disabled: true,
+        render: (_val: unknown, item: TransformedCourse) => (
+          <div className="mt-2 p-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" /> Dynamic AI Quiz Generator
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Generate dynamic interactive quiz questions based on YouTube metadata and RAG vector store chunks.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedQuizCourse(item.raw);
+                setQuizModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shrink-0 flex items-center gap-1.5 transition-all hover:scale-105"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Start Quiz
+            </button>
+          </div>
+        ),
+      },
       {
         label: 'Course Title',
         key: 'title',
@@ -526,6 +576,13 @@ export default function RagCourseList({
         enableSearch={true}
         isLoading={isLoading}
       />
+
+      <CourseQuizModal
+        isOpen={quizModalOpen}
+        onClose={() => setQuizModalOpen(false)}
+        course={selectedQuizCourse}
+      />
     </div>
   );
 }
+

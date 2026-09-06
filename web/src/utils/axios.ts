@@ -309,6 +309,7 @@ export const endpoints = {
     deleteCourse: (id: number | string) => `/api/rag/courses/${id}`,
     sync: "/api/rag/sync",
     stats: "/api/rag/stats",
+    generateQuiz: "/api/rag/generate-quiz",
   },
 };
 
