@@ -12,6 +12,7 @@ import EmailService from './email_services.js'
 import { generateCredentialPassword } from '../helper/password_generator.js'
 import apiCacheService from './api_cache_service.js'
 import { DateTime } from 'luxon'
+import UserRepository from '../modules/auth/repositories/UserRepository.js'
 
 type AuthUser = User | AdminUser | null
 
@@ -236,6 +237,19 @@ export default class FacultyController {
         isActive: validatedData.isActive ?? true,
       })
 
+      // Synchronize to users table with faculty role
+      const userRepo = new UserRepository()
+      const user = await userRepo.upsertFacultyUser({
+        email: faculty.facultyEmail,
+        fullName: faculty.facultyName,
+        password: faculty.facultyPassword,
+        mobile: faculty.facultyMobile || '0000000000',
+        facultyId: faculty.id,
+        instituteId: faculty.instituteId,
+        isActive: faculty.isActive,
+      })
+      await userRepo.assignRoleIfMissing(user, facultyRole.id)
+
       this.sendEmail(faculty.facultyEmail, plainPassword, 'faculty', faculty.facultyName).catch(
         (err) => {
           console.error('Email failed in background:', err)
@@ -332,6 +346,18 @@ export default class FacultyController {
 
       existingFaculty.merge(validatedData)
       await existingFaculty.save()
+
+      // Synchronize changes to linked User
+      const userRepo = new UserRepository()
+      await userRepo.upsertFacultyUser({
+        email: existingFaculty.facultyEmail,
+        fullName: existingFaculty.facultyName,
+        password: validatedData.facultyPassword ? existingFaculty.facultyPassword : '',
+        mobile: existingFaculty.facultyMobile || '0000000000',
+        facultyId: existingFaculty.id,
+        instituteId: existingFaculty.instituteId,
+        isActive: existingFaculty.isActive,
+      })
 
       await existingFaculty.load('department', (q) => q.select(['id', 'departmentName']))
       await existingFaculty.load('institute', (q) => q.select(['id', 'instituteName']))

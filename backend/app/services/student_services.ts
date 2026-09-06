@@ -12,6 +12,7 @@ import StudentRepository from '../repositories/student_repository.js'
 import { parseListQuery } from '../helper/list_query.js'
 import apiCacheService from './api_cache_service.js'
 import { generateCredentialPassword } from '../helper/password_generator.js'
+import UserRepository from '../modules/auth/repositories/UserRepository.js'
 
 type AuthUserScope = {
   id: number
@@ -134,6 +135,19 @@ export default class StudentServices {
         createdBy: authUser?.id,
         updatedBy: authUser?.id,
       })
+
+      // Synchronize to users table with student role
+      const userRepo = new UserRepository()
+      const user = await userRepo.upsertStudentUser({
+        email: student.studentEmail,
+        fullName: student.studentName,
+        password: student.studentPassword,
+        mobile: student.studentMobile || '0000000000',
+        studentId: student.id,
+        instituteId: student.instituteId,
+        isActive: student.isActive,
+      })
+      await userRepo.assignRoleIfMissing(user, studentRole.id)
 
       this.invalidateStudentCache()
 
@@ -276,6 +290,18 @@ export default class StudentServices {
       existingStudent.merge(validatedData)
       existingStudent.updatedBy = authUser?.id || existingStudent.updatedBy
       await existingStudent.save()
+
+      // Synchronize changes to linked User
+      const userRepo = new UserRepository()
+      await userRepo.upsertStudentUser({
+        email: existingStudent.studentEmail,
+        fullName: existingStudent.studentName,
+        password: validatedData.studentPassword ? existingStudent.studentPassword : '',
+        mobile: existingStudent.studentMobile || '0000000000',
+        studentId: existingStudent.id,
+        instituteId: existingStudent.instituteId,
+        isActive: existingStudent.isActive,
+      })
 
       this.invalidateStudentCache()
 

@@ -58,7 +58,9 @@ export default class AdminUser extends BaseModel {
   @beforeSave()
   public static async hashPassword(user: AdminUser) {
     if (user.$dirty.password) {
-      user.password = await hash.make(user.password)
+      if (!hash.isValidHash(user.password)) {
+        user.password = await hash.make(user.password)
+      }
     }
   }
 
@@ -75,6 +77,13 @@ export default class AdminUser extends BaseModel {
     // Verify password
     const isValid = await hash.verify(user.password, password)
     return isValid ? user : null
+  }
+
+  /**
+   * Verify password against instance
+   */
+  async verifyPassword(password: string): Promise<boolean> {
+    return hash.verify(this.password, password)
   }
 
   /**
