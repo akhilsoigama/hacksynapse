@@ -60,6 +60,7 @@ for (const prefix of ['/api/rag', '/rag']) {
   router.delete(`${prefix}/courses/:id`, [RagController, 'deleteCourse'])
   router.post(`${prefix}/sync`, [RagController, 'syncLms'])
   router.get(`${prefix}/stats`, [RagController, 'stats'])
+  router.post(`${prefix}/generate-quiz`, [RagController, 'generateQuiz'])
 }
 
 router

@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FaGraduationCap,
   FaYoutube,
@@ -9,8 +9,7 @@ import {
   Check,
   Copy,
   PlayCircle,
-  Filter,
-  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '@/theme/AppThemeProvider';
 import CommonDataList, {
@@ -18,14 +17,7 @@ import CommonDataList, {
 } from '@/components/common/commanDataList';
 import { IRagCourse } from '@/types/ragCourse';
 import { useCourses } from '@/action/ragCourse';
-import {
-  ALL_CATEGORIES,
-  isCategoryMatch,
-  isSubCategoryMatch,
-  getCanonicalCategory,
-  getCanonicalSubCategory,
-  getSubCategoriesForCategory,
-} from '@/constants/categoryData';
+import CourseQuizModal from './CourseQuizModal';
 
 /* -------------------------------------------------------------------------- */
 /*  YouTube URL helpers                                                       */
@@ -82,15 +74,14 @@ export function extractYoutubeId(url?: string): string | null {
   return null;
 }
 
-export function getYoutubeEmbedUrl(url: string, autoPlay = false): string | null {
+export function getYoutubeEmbedUrl(url: string): string | null {
   const id = extractYoutubeId(url);
-  const autoParam = autoPlay ? '&autoplay=1' : '';
   if (id) {
-    return `https://www.youtube-nocookie.com/embed/${id}?rel=0${autoParam}`;
+    return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
   }
   const playlistId = extractYoutubePlaylistId(url);
   if (playlistId) {
-    return `https://www.youtube-nocookie.com/embed/videoseries?list=${playlistId}&rel=0${autoParam}`;
+    return `https://www.youtube-nocookie.com/embed/videoseries?list=${playlistId}&rel=0`;
   }
   return null;
 }
@@ -111,26 +102,21 @@ export function getCleanYoutubeWatchUrl(url?: string): string | null {
 export interface VideoPlayerProps {
   videoType?: 'youtube' | 'uploaded';
   videoUrl?: string;
-  url?: string;
   title: string;
-  autoPlay?: boolean;
 }
 
 export function VideoPlayer({
   videoType,
   videoUrl,
-  url: propUrl,
   title,
-  autoPlay = false,
 }: VideoPlayerProps) {
   const { mode } = useTheme();
   const isDark = mode === 'dark';
   const [copied, setCopied] = useState(false);
 
-  const rawUrl = videoUrl || propUrl || '';
-  if (!rawUrl || !rawUrl.trim()) return null;
+  if (!videoUrl || !videoUrl.trim()) return null;
 
-  const url = rawUrl.trim();
+  const url = videoUrl.trim();
   const youtubeId = extractYoutubeId(url);
   const playlistId = extractYoutubePlaylistId(url);
 
@@ -144,7 +130,7 @@ export function VideoPlayer({
         url.toLowerCase().includes('youtube.com') ||
         url.toLowerCase().includes('youtu.be');
 
-  const embedUrl = isYoutube ? getYoutubeEmbedUrl(url, autoPlay) : null;
+  const embedUrl = isYoutube ? getYoutubeEmbedUrl(url) : null;
   const canonicalUrl = getCleanYoutubeWatchUrl(url) || url;
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -159,7 +145,6 @@ export function VideoPlayer({
       <div className="space-y-2">
         <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-black shadow-md border border-slate-700/40">
           <iframe
-            key={embedUrl}
             className="absolute inset-0 w-full h-full border-0"
             src={embedUrl}
             title={title || 'Course Video Player'}
@@ -208,11 +193,9 @@ export function VideoPlayer({
     <div className="space-y-2">
       <div className="rounded-xl overflow-hidden bg-black shadow-md border border-slate-700/40">
         <video
-          key={directVideoUrl}
           className="w-full max-h-[420px] rounded-xl"
           src={directVideoUrl}
           controls
-          autoPlay={autoPlay}
           preload="metadata"
         />
       </div>
@@ -279,86 +262,14 @@ export default function RagCourseList({
   onCreate,
   isLoading: passedIsLoading,
 }: RagCourseListProps) {
-  const { mode } = useTheme();
-  const isDark = mode === 'dark';
   const navigate = useNavigate();
+  const fetched = useCourses();
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const rawUrlCategory = searchParams.get('category');
-  const rawUrlSubCategory = searchParams.get('subCategory');
-
-  const canonicalCategory = rawUrlCategory
-    ? getCanonicalCategory(rawUrlCategory) || rawUrlCategory
-    : 'all';
-  const canonicalSubCategory =
-    canonicalCategory !== 'all' && rawUrlSubCategory
-      ? getCanonicalSubCategory(canonicalCategory, rawUrlSubCategory) || rawUrlSubCategory
-      : 'all';
-
-  const [selectedCategory, setSelectedCategory] = useState<string>(canonicalCategory);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>(canonicalSubCategory);
-
-  // Synchronize state when URL query params change (e.g. Back/Forward button, direct link)
-  useEffect(() => {
-    const nextCat = rawUrlCategory
-      ? getCanonicalCategory(rawUrlCategory) || rawUrlCategory
-      : 'all';
-    const nextSub =
-      nextCat !== 'all' && rawUrlSubCategory
-        ? getCanonicalSubCategory(nextCat, rawUrlSubCategory) || rawUrlSubCategory
-        : 'all';
-    setSelectedCategory(nextCat);
-    setSelectedSubCategory(nextSub);
-  }, [rawUrlCategory, rawUrlSubCategory]);
-
-  const fetched = useCourses(
-    undefined,
-    selectedCategory !== 'all' ? selectedCategory : undefined,
-    selectedSubCategory !== 'all' ? selectedSubCategory : undefined
-  );
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [selectedQuizCourse, setSelectedQuizCourse] = useState<IRagCourse | null>(null);
 
   const courses = passedCourses ?? fetched.courses;
   const isLoading = passedIsLoading ?? fetched.coursesLoading;
-
-  const handleCategoryChange = (newCategory: string) => {
-    setSelectedCategory(newCategory);
-    setSelectedSubCategory('all');
-
-    const nextParams = new URLSearchParams(searchParams);
-    if (newCategory && newCategory !== 'all') {
-      nextParams.set('category', newCategory);
-    } else {
-      nextParams.delete('category');
-    }
-    nextParams.delete('subCategory');
-    setSearchParams(nextParams, { replace: true });
-  };
-
-  const handleSubCategoryChange = (newSubCategory: string) => {
-    setSelectedSubCategory(newSubCategory);
-
-    const nextParams = new URLSearchParams(searchParams);
-    if (newSubCategory && newSubCategory !== 'all') {
-      nextParams.set('subCategory', newSubCategory);
-    } else {
-      nextParams.delete('subCategory');
-    }
-    setSearchParams(nextParams, { replace: true });
-  };
-
-  const handleResetFilters = () => {
-    setSelectedCategory('all');
-    setSelectedSubCategory('all');
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('category');
-    nextParams.delete('subCategory');
-    setSearchParams(nextParams, { replace: true });
-  };
-
-  const availableSubCategories = useMemo(() => {
-    if (!selectedCategory || selectedCategory === 'all') return [];
-    return getSubCategoriesForCategory(selectedCategory);
-  }, [selectedCategory]);
 
   const transformedCourses: TransformedCourse[] = useMemo(() => {
     return (courses || []).map((c) => {
@@ -409,7 +320,7 @@ export default function RagCourseList({
       {
         header: 'Course Title',
         accessor: 'title' as keyof TransformedCourse,
-        width: '26%',
+        width: '24%',
         render: (item: TransformedCourse) => (
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center shrink-0">
@@ -429,7 +340,7 @@ export default function RagCourseList({
       {
         header: 'Category',
         accessor: 'category' as keyof TransformedCourse,
-        width: '18%',
+        width: '16%',
         render: (item: TransformedCourse) => (
           <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             {item.category}
@@ -476,6 +387,24 @@ export default function RagCourseList({
         ),
       },
       {
+        header: 'AI Quiz',
+        accessor: 'id' as keyof TransformedCourse,
+        width: '14%',
+        render: (item: TransformedCourse) => (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedQuizCourse(item.raw);
+              setQuizModalOpen(true);
+            }}
+            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> AI Quiz
+          </button>
+        ),
+      },
+      {
         header: 'Created Date',
         accessor: 'createdAt' as keyof TransformedCourse,
         width: '12%',
@@ -487,6 +416,33 @@ export default function RagCourseList({
   /* Single Unified View Modal definition */
   const viewModalFields: ModalField<TransformedCourse>[] = useMemo(
     () => [
+      {
+        label: 'Interactive AI Quiz (YouTube & RAG)',
+        type: 'custom' as const,
+        disabled: true,
+        render: (_val: unknown, item: TransformedCourse) => (
+          <div className="mt-2 p-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" /> Dynamic AI Quiz Generator
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Generate dynamic interactive quiz questions based on YouTube metadata and RAG vector store chunks.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedQuizCourse(item.raw);
+                setQuizModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shrink-0 flex items-center gap-1.5 transition-all hover:scale-105"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Start Quiz
+            </button>
+          </div>
+        ),
+      },
       {
         label: 'Course Title',
         key: 'title',
@@ -601,161 +557,10 @@ export default function RagCourseList({
     []
   );
 
-  const filteredCourses: TransformedCourse[] = useMemo(() => {
-    return transformedCourses.filter((course) => {
-      // 1. Strict Category filter
-      if (selectedCategory && selectedCategory !== 'all') {
-        if (!isCategoryMatch(course.category, selectedCategory)) {
-          return false;
-        }
-      }
-
-      // 2. Strict Sub-Category filter
-      if (selectedSubCategory && selectedSubCategory !== 'all') {
-        if (!isSubCategoryMatch(course.subCategory, selectedSubCategory)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [transformedCourses, selectedCategory, selectedSubCategory]);
-
-  const emptyMessage = useMemo(() => {
-    if (selectedCategory === 'Computer Basics') {
-      if (selectedSubCategory && selectedSubCategory !== 'all') {
-        return 'No courses available for this sub-category.';
-      }
-      return 'No Computer Basics courses available.';
-    }
-    if (selectedCategory !== 'all') {
-      if (selectedSubCategory && selectedSubCategory !== 'all') {
-        return 'No courses available for this sub-category.';
-      }
-      return `No ${selectedCategory} courses available.`;
-    }
-    return 'No courses found';
-  }, [selectedCategory, selectedSubCategory]);
-
-  const emptyDescription = useMemo(() => {
-    if (selectedCategory === 'Computer Basics') {
-      if (selectedSubCategory && selectedSubCategory !== 'all') {
-        return `No courses currently match sub-category "${selectedSubCategory}".`;
-      }
-      return 'Get started by creating your first Computer Basics course.';
-    }
-    if (selectedCategory !== 'all') {
-      return `Get started by creating your first course in ${selectedCategory}.`;
-    }
-    return 'Get started by creating your first course with video lectures';
-  }, [selectedCategory, selectedSubCategory]);
-
   return (
-    <div className="w-full space-y-4" style={{ boxSizing: 'border-box' }}>
-      {/* Category & Sub-Category Filter Controls */}
-      <div
-        className={`p-4 rounded-xl border transition-all duration-200 ${
-          isDark
-            ? 'bg-slate-900/70 border-slate-800 shadow-sm'
-            : 'bg-white border-slate-200 shadow-sm'
-        }`}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
-            <Filter className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-            <span className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-              Filter Courses
-            </span>
-            {(selectedCategory !== 'all' || selectedSubCategory !== 'all') && (
-              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">
-                Active Filter
-              </span>
-            )}
-          </div>
-
-          {(selectedCategory !== 'all' || selectedSubCategory !== 'all') && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
-                isDark
-                  ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Filters
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Category Dropdown */}
-          <div>
-            <label
-              htmlFor="filter-category"
-              className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}
-            >
-              Category
-            </label>
-            <select
-              id="filter-category"
-              value={selectedCategory}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className={`w-full px-3 py-2 rounded-lg text-sm font-medium border transition-colors outline-none cursor-pointer ${
-                isDark
-                  ? 'bg-slate-950 border-slate-700 text-slate-100 hover:border-slate-600 focus:border-indigo-500'
-                  : 'bg-slate-50 border-slate-300 text-slate-900 hover:border-slate-400 focus:border-indigo-500'
-              }`}
-            >
-              <option value="all">All Categories</option>
-              <option value="Computer Basics">Computer Basics</option>
-              {ALL_CATEGORIES.filter((c) => c !== 'Computer Basics').map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sub-Category Dropdown */}
-          <div>
-            <label
-              htmlFor="filter-sub-category"
-              className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}
-            >
-              Sub-Category
-            </label>
-            <select
-              id="filter-sub-category"
-              value={selectedSubCategory}
-              onChange={(e) => handleSubCategoryChange(e.target.value)}
-              disabled={selectedCategory === 'all' || availableSubCategories.length === 0}
-              className={`w-full px-3 py-2 rounded-lg text-sm font-medium border transition-colors outline-none ${
-                selectedCategory === 'all' || availableSubCategories.length === 0
-                  ? isDark
-                    ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed'
-                    : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-                  : isDark
-                    ? 'bg-slate-950 border-slate-700 text-slate-100 hover:border-slate-600 focus:border-indigo-500 cursor-pointer'
-                    : 'bg-slate-50 border-slate-300 text-slate-900 hover:border-slate-400 focus:border-indigo-500 cursor-pointer'
-              }`}
-            >
-              <option value="all">
-                {selectedCategory === 'all' ? 'Select a Category First' : 'All Sub-Categories'}
-              </option>
-              {availableSubCategories.map((sub) => (
-                <option key={sub} value={sub}>
-                  {sub}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full" style={{ boxSizing: 'border-box' }}>
       <CommonDataList<TransformedCourse>
-        data={filteredCourses}
+        data={transformedCourses}
         title="Course Management"
         subtitle="Manage courses, video lectures, and AI vector embeddings"
         columns={columns}
@@ -766,11 +571,18 @@ export default function RagCourseList({
         icon={<FaGraduationCap />}
         createButtonText="Add Course"
         searchPlaceholder="Search courses by title, category, or tags..."
-        emptyMessage={emptyMessage}
-        emptyDescription={emptyDescription}
+        emptyMessage="No courses found"
+        emptyDescription="Get started by creating your first course with video lectures"
         enableSearch={true}
         isLoading={isLoading}
+      />
+
+      <CourseQuizModal
+        isOpen={quizModalOpen}
+        onClose={() => setQuizModalOpen(false)}
+        course={selectedQuizCourse}
       />
     </div>
   );
 }
+

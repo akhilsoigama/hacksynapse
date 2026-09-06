@@ -161,3 +161,57 @@ export const deleteCourseService = async (courseId: number | string): Promise<bo
     return false;
   }
 };
+
+export interface IQuizQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  explanation: string;
+}
+
+export interface IQuizResult {
+  success: boolean;
+  videoMetadata: {
+    title: string;
+    author: string;
+    thumbnailUrl: string;
+  } | null;
+  quiz: {
+    title: string;
+    totalQuestions: number;
+    questions: IQuizQuestion[];
+  };
+}
+
+export const generateCourseQuizService = async (payload: {
+  videoUrl?: string;
+  courseId?: number | string;
+  title?: string;
+  description?: string;
+  category?: string;
+  subModules?: any[];
+  numQuestions?: number;
+}): Promise<IQuizResult | null> => {
+  try {
+    const res = await axiosInstance.post(endpoints.rag.generateQuiz, payload);
+    if (res.status === 200 && res.data?.success) {
+      toast.success('AI Quiz generated from YouTube metadata & RAG!');
+      return res.data;
+    } else {
+      toast.error('Failed to generate quiz');
+      return null;
+    }
+  } catch (error: unknown) {
+    const errorMessage = axios.isAxiosError(error)
+      ? typeof error.response?.data?.message === 'string'
+        ? error.response.data.message
+        : error.message
+      : error instanceof Error
+        ? error.message
+        : 'Failed to generate quiz';
+    toast.error(errorMessage);
+    return null;
+  }
+};
+
