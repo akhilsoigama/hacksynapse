@@ -1,6 +1,6 @@
 // components/Sidebar/SublinkDropdown.tsx
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FaChevronRight } from 'react-icons/fa';
 import { useTheme } from '@/theme/AppThemeProvider';
@@ -27,12 +27,37 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
   expandedSubLink,
   toggleSubLink,
   handleLinkClick,
-  currentPath,
+  currentPath: _currentPath,
 }) => {
   const { mode } = useTheme();
   const isDark = mode === 'dark';
   const shouldReduceMotion = useReducedMotion();
   const transition = { duration: 0.15, ease: 'easeOut' as const };
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isTargetActive = (to: string) => {
+    if (to.includes('?')) {
+      const [targetPath, targetSearch] = to.split('?');
+      if (location.pathname !== targetPath) return false;
+      const targetParams = new URLSearchParams(targetSearch);
+      const currentParams = new URLSearchParams(location.search);
+      for (const [key, val] of targetParams.entries()) {
+        if (currentParams.get(key) !== val) return false;
+      }
+      return true;
+    }
+    const currentSub = new URLSearchParams(location.search).get('subCategory');
+    if (location.pathname === to) {
+      return !currentSub;
+    }
+    return location.pathname.startsWith(to + '/');
+  };
+
+  const isParentActive = (subLink: SublinkItem) => {
+    const basePath = subLink.to.split('?')[0];
+    return location.pathname.startsWith(basePath);
+  };
 
   return (
     <AnimatePresence>
@@ -47,9 +72,16 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
           <div key={`${subLink.to}-${index}`} className="relative">
             {subLink.subLinks && subLink.subLinks.length > 0 ? (
               <div>
-                <button type="button" onClick={() => toggleSubLink(subLink.to)} className="w-full text-left group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleSubLink(subLink.to);
+                    navigate(subLink.to);
+                  }}
+                  className="w-full text-left group"
+                >
                   <SidebarLinkItem
-                    isActive={currentPath.startsWith(subLink.to)}
+                    isActive={isParentActive(subLink)}
                     isSidebarExpanded={true}
                     isDark={isDark}
                     isSubLink={true}
@@ -60,8 +92,9 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
                     </span>
                     <span className="flex-1 font-medium">{subLink.label}</span>
                     <FaChevronRight
-                      className={`h-3 w-3 transition-transform ${expandedSubLink === subLink.to ? 'rotate-90' : 'rotate-0'} ${isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}
+                      className={`h-3 w-3 transition-transform ${
+                        expandedSubLink === subLink.to ? 'rotate-90' : 'rotate-0'
+                      } ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
                     />
                   </SidebarLinkItem>
                 </button>
@@ -73,7 +106,9 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
                       animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
                       exit={shouldReduceMotion ? {} : { opacity: 0, y: -4 }}
                       transition={transition}
-                      className={`ml-4 mt-1 space-y-1 border-l pl-2 ${isDark ? 'border-white/10' : 'border-slate-200'}`}
+                      className={`ml-4 mt-1 space-y-1 border-l pl-2 ${
+                        isDark ? 'border-white/10' : 'border-slate-200'
+                      }`}
                     >
                       {subLink.subLinks.map((nestedSubLink, nestedIndex) => (
                         <NavLink
@@ -82,9 +117,9 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
                           onClick={handleLinkClick}
                           className="block"
                         >
-                          {({ isActive }: { isActive: boolean }) => (
+                          {() => (
                             <SidebarLinkItem
-                              isActive={isActive}
+                              isActive={isTargetActive(nestedSubLink.to)}
                               isSidebarExpanded={true}
                               isDark={isDark}
                               isSubLink={true}
@@ -109,10 +144,15 @@ const SublinkDropdown: React.FC<SublinkDropdownProps> = ({
                 </AnimatePresence>
               </div>
             ) : (
-              <NavLink key={`${subLink.to}-${index}`} to={subLink.to} onClick={handleLinkClick} className="block">
-                {({ isActive }: { isActive: boolean }) => (
+              <NavLink
+                key={`${subLink.to}-${index}`}
+                to={subLink.to}
+                onClick={handleLinkClick}
+                className="block"
+              >
+                {() => (
                   <SidebarLinkItem
-                    isActive={isActive}
+                    isActive={isTargetActive(subLink.to)}
                     isSidebarExpanded={true}
                     isDark={isDark}
                     isSubLink={true}

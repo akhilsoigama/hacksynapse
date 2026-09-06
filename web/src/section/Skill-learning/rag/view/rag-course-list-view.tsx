@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useRouter } from '@/hooks/useRouter';
 import DeleteModal from '@/components/common/deleteModel';
 import RagCourseList from '../rag-course-list';
@@ -7,7 +8,10 @@ import { IRagCourse } from '@/types/ragCourse';
 
 export default function RagCourseListView() {
   const router = useRouter();
-  const { courses, coursesLoading, coursesMutate } = useCourses();
+  const [searchParams] = useSearchParams();
+  const urlCategory = searchParams.get('category') || undefined;
+  const urlSubCategory = searchParams.get('subCategory') || undefined;
+  const { courses, coursesLoading, coursesMutate } = useCourses(undefined, urlCategory, urlSubCategory);
 
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;

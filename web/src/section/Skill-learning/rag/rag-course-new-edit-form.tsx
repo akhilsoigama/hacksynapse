@@ -20,22 +20,10 @@ import ModuleVideoCard from './ModuleVideoCard';
 import { getYoutubeEmbedUrl } from './RagCourseList';
 import { createCourseService, updateCourseService } from '@/action/ragCourse';
 import { IRagCourse } from '@/types/ragCourse';
-
-/* -------------------------------------------------------------------------- */
-/*  Category → Sub-category map                                               */
-/* -------------------------------------------------------------------------- */
-const CATEGORY_MAP: Record<string, string[]> = {
-  'Digital Skills':     ['Mobile Banking', 'UPI Payments', 'Online Safety', 'Social Media', 'E-Commerce'],
-  'Financial Literacy': ['Budgeting', 'Savings & Goals', 'Insurance Basics', 'Investment Intro', 'Tax Basics'],
-  'Soft Skills':        ['Communication', 'Leadership', 'Teamwork', 'Time Management', 'Problem Solving'],
-  'Career Roadmap':     ['Resume Building', 'Interview Skills', 'Job Search', 'Networking', 'LinkedIn Profile'],
-  'Government Exams':   ['SSC / CGL', 'Banking (IBPS)', 'UPSC Prelims', 'Railways (RRB)', 'State PSC'],
-  'Spoken English':     ['Basic Conversation', 'Grammar Essentials', 'Pronunciation', 'Business English', 'Interview English'],
-  'Computer Basics':    ['MS Office', 'Internet & Email', 'Typing Skills', 'Windows OS', 'Troubleshooting'],
-  'Coding':             ['Python Basics', 'Web Development', 'Data Science Intro', 'JavaScript', 'SQL & Databases'],
-};
-
-const CATEGORIES = Object.keys(CATEGORY_MAP).map((c) => ({ value: c, label: c }));
+import {
+  CATEGORY_SELECT_OPTIONS,
+  getSubCategoriesForCategory,
+} from '@/constants/categoryData';
 
 export interface VideoFormValues {
   title: string;
@@ -157,18 +145,31 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
   }, [currentData, reset]);
 
   const selectedCategory = watch('category');
+  const selectedSubCategory = watch('subCategory');
   const mainVideoType = watch('videoType');
   const mainVideoUrl = watch('videoUrl');
   const mainEmbedUrl = mainVideoUrl ? getYoutubeEmbedUrl(mainVideoUrl) : null;
 
-  const subCategoryOptions = (CATEGORY_MAP[selectedCategory] ?? []).map((s) => ({
+  // Track previous category to reset subCategory only when category actually changes
+  const prevCategoryRef = useRef(selectedCategory);
+  useEffect(() => {
+    if (prevCategoryRef.current && prevCategoryRef.current !== selectedCategory) {
+      const validSubs = getSubCategoriesForCategory(selectedCategory);
+      if (selectedSubCategory && !validSubs.includes(selectedSubCategory)) {
+        setValue('subCategory', '');
+      }
+    }
+    prevCategoryRef.current = selectedCategory;
+  }, [selectedCategory, selectedSubCategory, setValue]);
+
+  const validSubCategories = getSubCategoriesForCategory(selectedCategory);
+  const subCategoryOptions = validSubCategories.map((s) => ({
     value: s,
     label: s,
   }));
 
   const { fields: moduleFields, append: appendModule, remove: removeModule } =
     useFieldArray({ control, name: 'subModules' });
-
 
   const addModule = () =>
     appendModule({
@@ -179,6 +180,14 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
 
   const onSubmit = async (data: RagFormValues) => {
     try {
+      const validSubs = getSubCategoriesForCategory(data.category);
+      if (data.category === 'Computer Basics' || validSubs.length > 0) {
+        if (!data.subCategory || !validSubs.includes(data.subCategory)) {
+          toast.error(`Please select a valid sub-category for ${data.category}`);
+          return;
+        }
+      }
+
       const payload = {
         title: data.title,
         category: data.category,
@@ -300,9 +309,16 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
                   label="Category"
                   required
                   placeholder="Select category"
-                  options={CATEGORIES}
+                  options={CATEGORY_SELECT_OPTIONS}
                   validation={{ required: 'Category is required' }}
-                  onChange={() => setValue('subCategory', '')}
+                  onChange={(e) => {
+                    const newCat = String(e.target.value);
+                    const validSubs = getSubCategoriesForCategory(newCat);
+                    const currentSub = watch('subCategory');
+                    if (currentSub && !validSubs.includes(currentSub)) {
+                      setValue('subCategory', '');
+                    }
+                  }}
                 />
 
                 <RHFDropDown
@@ -312,7 +328,16 @@ export default function RagCourseNewEditForm({ currentData }: Props) {
                   placeholder={selectedCategory ? 'Select sub-category' : 'Select category first'}
                   options={subCategoryOptions}
                   disabled={!selectedCategory}
-                  validation={{ required: 'Sub-category is required' }}
+                  validation={{
+                    required: 'Sub-category is required',
+                    validate: (val: string) => {
+                      const valid = getSubCategoriesForCategory(watch('category'));
+                      if (valid.length > 0 && (!val || !valid.includes(val))) {
+                        return `Sub-category must be one of: ${valid.join(', ')}`;
+                      }
+                      return true;
+                    },
+                  }}
                 />
 
                 <RHFFormField

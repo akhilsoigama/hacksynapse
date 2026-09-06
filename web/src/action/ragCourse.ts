@@ -12,13 +12,16 @@ const swrOptions = {
   dedupingInterval: 5000,
 };
 
-export function useCourses(searchQuery?: string, category?: string) {
+export function useCourses(searchQuery?: string, category?: string, subCategory?: string) {
   const queryParams = new URLSearchParams();
   if (searchQuery && searchQuery.trim()) {
     queryParams.append('query', searchQuery.trim());
   }
   if (category && category !== 'all' && category.trim()) {
     queryParams.append('category', category.trim());
+  }
+  if (subCategory && subCategory !== 'all' && subCategory.trim()) {
+    queryParams.append('subCategory', subCategory.trim());
   }
 
   const queryString = queryParams.toString();

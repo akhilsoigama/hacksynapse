@@ -111,13 +111,20 @@ export default class RagController {
    * POST /api/rag/query or POST /rag/query
    */
   public async queryCourses({ request, response, auth }: HttpContext) {
-    const { query, category, top_k, page } = request.only(['query', 'category', 'top_k', 'page'])
+    const { query, category, subCategory, top_k, page } = request.only([
+      'query',
+      'category',
+      'subCategory',
+      'top_k',
+      'page',
+    ])
     const user = await this.resolveUser(auth)
 
     try {
       const courses = await this.ragService.queryCourses({
         query: typeof query === 'string' ? query : '',
         category: typeof category === 'string' ? category : undefined,
+        subCategory: typeof subCategory === 'string' ? subCategory : undefined,
         instituteId: user?.instituteId ?? null,
         top_k: typeof top_k === 'number' ? top_k : 10,
         page: typeof page === 'number' ? page : 0,
@@ -137,14 +144,16 @@ export default class RagController {
    * GET /api/rag/courses or GET /rag/courses
    */
   public async listCourses({ request, response, auth }: HttpContext) {
-    const { category, limit, page } = request.qs()
+    const { category, subCategory, limit, page, query } = request.qs()
     const user = await this.resolveUser(auth)
 
     try {
       const courses = await this.ragService.listCourses({
         category: typeof category === 'string' ? category : undefined,
+        subCategory: typeof subCategory === 'string' ? subCategory : undefined,
+        query: typeof query === 'string' ? query : undefined,
         instituteId: user?.instituteId ?? null,
-        limit: limit ? Number(limit) : 10,
+        limit: limit ? Number(limit) : 50,
         page: page ? Number(page) : 0,
       })
 
