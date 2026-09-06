@@ -25,6 +25,7 @@ import {
   FaLaptopCode,
   FaRoute,
   FaUniversity,
+  FaRobot,
 } from "react-icons/fa";
 import { PermissionKeys } from "../utils/permission";
 import { Module } from "../types/sidebar";
@@ -483,6 +484,26 @@ export const modules: Module[] = [
             label: "Government Exams",
             icon: <FaUniversity className="size-6" />,
             permissions: [PermissionKeys.SKILL_GOVT_EXAM_VIEW],
+          },
+          {
+            to: "/dashboard/skills/rag",
+            label: "Course",
+            icon: <FaRobot className="size-6" />,
+            permissions: [PermissionKeys.SKILL_RAG_ACCESS],
+            subLinks: [
+              {
+                to: "/dashboard/skills/rag",
+                label: "View Courses",
+                icon: <FaList className="size-6" />,
+                permissions: [PermissionKeys.SKILL_RAG_COURSE_VIEW],
+              },
+              {
+                to: "/dashboard/skills/rag/create",
+                label: "Create Course",
+                icon: <FaPlus className="size-6" />,
+                permissions: [PermissionKeys.SKILL_RAG_COURSE_CREATE],
+              },
+            ],
           },
         ],
       },

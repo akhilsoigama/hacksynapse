@@ -87,6 +87,10 @@ const pages = {
   DigitalSkill: lazyPreload(() => import("../section/Skill-learning/digital-skill/digital-skill-list"), "DigitalSkill"),
   CareerRoadmap: lazyPreload(() => import("../section/Skill-learning/career-roadmap/career-roadmap-list"), "CareerRoadmap"),
   softSkill: lazyPreload(() => import("../section/Skill-learning/soft-skill/soft-skill-list"), "softSkill"),
+  RagCreate: lazyPreload(() => import("../pages/dashboard/rag-course/new"), "RagCreate"),
+  RagCourseList: lazyPreload(() => import("../pages/dashboard/rag-course/list"), "RagCourseList"),
+  RagCourseEdit: lazyPreload(() => import("../pages/dashboard/rag-course/edit"), "RagCourseEdit"),
+  RagPage: lazyPreload(() => import("../section/Skill-learning/rag/RagPage"), "RagPage"),
 };
 
 // ✅ Preload all chunks when app loads
@@ -314,6 +318,13 @@ export default function Routers() {
           <Route path="skills/digital-skills" element={<Page component={pages.DigitalSkill} type="page" />} />
           <Route path="skills/career-roadmap" element={<Page component={pages.CareerRoadmap} type="page" />} />
           <Route path="skills/soft-skills" element={<Page component={pages.softSkill} type="page" />} />
+
+          {/* RAG Skill Learning / Course Management */}
+          <Route path="skills/rag" element={<Page component={pages.RagCourseList} type="table" />} />
+          <Route path="skills/rag/list" element={<Page component={pages.RagCourseList} type="table" />} />
+          <Route path="skills/rag/new" element={<Page component={pages.RagCreate} type="form" />} />
+          <Route path="skills/rag/create" element={<Page component={pages.RagCreate} type="form" />} />
+          <Route path="skills/rag/:id/edit" element={<Page component={pages.RagCourseEdit} type="form" />} />
         </Route>
       </Route>
     </Routes>
