@@ -1,383 +1,171 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTheme } from '@/theme/AppThemeProvider'
-import { useRouter } from '@/hooks/useRouter'
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import {
     AccessTime,
     MenuBook,
-    School,
-    Gavel,
-    AccountBalance,
-    HealthAndSafety,
-    Engineering,
-    Business,
-    EmojiEvents,
-    WorkspacePremium,
     PlayArrow,
-    Close,
+    AccountBalance,
+    Train,
+    Gavel,
+    AssignmentTurnedIn,
+    Apartment,
 } from '@mui/icons-material'
+import { Search, RotateCcw, Plus } from 'lucide-react'
 import { ParticleButton } from "../../../components/ui/particle-button"
 import { cn } from '@/utils/utils'
+import { useCourses } from '@/action/ragCourse'
+import {
+    CATEGORY_MAP,
+    isCategoryMatch,
+    isSubCategoryMatch,
+    getCanonicalSubCategory,
+} from '@/constants/categoryData'
+import { IRagCourse } from '@/types/ragCourse'
 
-// Nested Component - Exam Detail View
-const ExamDetail = ({ topic, onClose }: { topic: any, onClose: () => void }) => {
-    const { mode } = useTheme()
-    const isDark = mode === 'dark'
-    const router = useRouter()
+const GOVT_EXAMS_SUB_CATEGORIES = CATEGORY_MAP['Government Exams'] || [
+    'SSC / CGL',
+    'Banking (IBPS)',
+    'UPSC Prelims',
+    'Railways (RRB)',
+    'State PSC',
+]
 
-    const handleStartPreparation = () => {
-        router.push(`/exam/${topic.slug}`)
+const getSubCategoryIcon = (subCat?: string) => {
+    switch (subCat) {
+        case 'SSC / CGL':
+            return <Apartment fontSize="small" className="text-orange-500" />
+        case 'Banking (IBPS)':
+            return <AccountBalance fontSize="small" className="text-blue-500" />
+        case 'UPSC Prelims':
+            return <Gavel fontSize="small" className="text-amber-500" />
+        case 'Railways (RRB)':
+            return <Train fontSize="small" className="text-emerald-500" />
+        case 'State PSC':
+            return <AssignmentTurnedIn fontSize="small" className="text-purple-500" />
+        default:
+            return <AccountBalance fontSize="small" className="text-orange-500" />
     }
+}
 
-    const getLevelColor = (level: string) => {
-        if (isDark) {
-            switch (level) {
-                case 'Beginner': return 'bg-green-900/30 text-green-300 border-green-400/20'
-                case 'Intermediate': return 'bg-yellow-900/30 text-yellow-300 border-yellow-400/20'
-                case 'Advanced': return 'bg-red-900/30 text-red-300 border-red-400/20'
-                default: return 'bg-gray-700 text-gray-300'
-            }
-        } else {
-            switch (level) {
-                case 'Beginner': return 'bg-green-100 text-green-700 border-green-200'
-                case 'Intermediate': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                case 'Advanced': return 'bg-red-100 text-red-700 border-red-200'
-                default: return 'bg-gray-100 text-gray-700'
-            }
+const getSubCategoryBadgeStyle = (subCat?: string, isDark?: boolean) => {
+    if (isDark) {
+        switch (subCat) {
+            case 'SSC / CGL': return 'bg-orange-950/40 text-orange-300 border-orange-800/40'
+            case 'Banking (IBPS)': return 'bg-blue-950/40 text-blue-300 border-blue-800/40'
+            case 'UPSC Prelims': return 'bg-amber-950/40 text-amber-300 border-amber-800/40'
+            case 'Railways (RRB)': return 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40'
+            case 'State PSC': return 'bg-purple-950/40 text-purple-300 border-purple-800/40'
+            default: return 'bg-slate-800 text-slate-300 border-slate-700'
+        }
+    } else {
+        switch (subCat) {
+            case 'SSC / CGL': return 'bg-orange-50 text-orange-700 border-orange-200'
+            case 'Banking (IBPS)': return 'bg-blue-50 text-blue-700 border-blue-200'
+            case 'UPSC Prelims': return 'bg-amber-50 text-amber-700 border-amber-200'
+            case 'Railways (RRB)': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            case 'State PSC': return 'bg-purple-50 text-purple-700 border-purple-200'
+            default: return 'bg-slate-100 text-slate-700 border-slate-200'
         }
     }
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className={cn(
-                "relative max-w-2xl w-full rounded-2xl p-6 shadow-2xl",
-                isDark ? "bg-slate-900 border border-slate-700" : "bg-white border border-slate-200"
-            )}>
-                {/* Close Button - Top Right */}
-                <button
-                    onClick={onClose}
-                    className={cn(
-                        "absolute top-4 right-4 z-10 p-2 rounded-lg transition-colors",
-                        isDark ? "hover:bg-slate-800 text-slate-400 hover:text-white" : "hover:bg-slate-100 text-slate-600 hover:text-slate-900"
-                    )}
-                >
-                    <Close fontSize="medium" />
-                </button>
-
-                {/* Header: Icon + Status + Level */}
-                <div className="flex items-start justify-between mb-4 pr-10">
-                    <div className={cn(
-                        "flex h-14 w-14 items-center justify-center rounded-2xl",
-                        isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"
-                    )}>
-                        {topic.icon}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className={cn(
-                            "px-3 py-1 rounded-full text-xs font-medium border",
-                            isDark ? "bg-slate-800 text-slate-300 border-slate-700" : "bg-slate-100 text-slate-600 border-slate-200"
-                        )}>
-                            {topic.status}
-                        </span>
-                        <span className={cn(
-                            "px-3 py-1 rounded-full text-xs font-medium border",
-                            getLevelColor(topic.level)
-                        )}>
-                            {topic.level}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Title */}
-                <h2 className={cn(
-                    "text-2xl font-bold mb-2",
-                    isDark ? "text-white" : "text-slate-900"
-                )}>
-                    {topic.title}
-                </h2>
-
-                {/* Description */}
-                <p className={cn(
-                    "text-base mb-6",
-                    isDark ? "text-slate-400" : "text-slate-600"
-                )}>
-                    {topic.description}
-                </p>
-
-                {/* Details Grid */}
-                <div className={cn(
-                    "grid grid-cols-3 gap-4 p-4 rounded-xl mb-6",
-                    isDark ? "bg-slate-800/50" : "bg-slate-50"
-                )}>
-                    <div className="text-center">
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? "text-white" : "text-slate-900"
-                        )}>{topic.duration}</p>
-                        <p className={cn(
-                            "text-xs",
-                            isDark ? "text-slate-400" : "text-slate-500"
-                        )}>Preparation</p>
-                    </div>
-                    <div className="text-center">
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? "text-white" : "text-slate-900"
-                        )}>{topic.lessons}</p>
-                        <p className={cn(
-                            "text-xs",
-                            isDark ? "text-slate-400" : "text-slate-500"
-                        )}>Modules</p>
-                    </div>
-                    <div className="text-center">
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? "text-white" : "text-slate-900"
-                        )}>{topic.students}</p>
-                        <p className={cn(
-                            "text-xs",
-                            isDark ? "text-slate-400" : "text-slate-500"
-                        )}>Aspirants</p>
-                    </div>
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                    {topic.tags?.map((tag: string, i: number) => (
-                        <span
-                            key={`${tag}-${i}`}
-                            className={cn(
-                                "rounded-md px-3 py-1 text-xs font-medium",
-                                isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"
-                            )}
-                        >
-                            #{tag}
-                        </span>
-                    ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                    <ParticleButton
-                        type="button"
-                        className={cn(
-                            "flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all",
-                            "bg-gradient-to-r from-blue-500 to-teal-500 text-white hover:shadow-lg hover:shadow-blue-500/25"
-                        )}
-                        successDuration={600}
-                        onClick={handleStartPreparation}
-                    >
-                        <PlayArrow fontSize="small" />
-                        Start Preparation
-                    </ParticleButton>
-                    <ParticleButton
-                        type="button"
-                        className={cn(
-                            "px-6 py-3 rounded-xl font-medium transition-all",
-                            isDark 
-                                ? "bg-slate-800 text-slate-300 hover:bg-slate-700" 
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        )}
-                        successDuration={600}
-                        onClick={onClose}
-                    >
-                        Close
-                    </ParticleButton>
-                </div>
-            </div>
-        </div>
-    )
 }
+
+import { CourseDetailModal } from '../common/CourseDetailModal'
+
 
 const GovernmentExamsList = () => {
     const { mode } = useTheme()
     const isDark = mode === 'dark'
+    const navigate = useNavigate()
 
-    const [selectedTopic, setSelectedTopic] = useState<any>(null)
+    const [selectedCourse, setSelectedCourse] = useState<IRagCourse | null>(null)
 
-    const topics = [
-        {
-            id: 1,
-            title: 'UPSC Civil Services',
-            level: 'Advanced',
-            duration: '12 months',
-            lessons: 45,
-            students: 12500,
-            description: 'Complete preparation for UPSC Civil Services Examination (IAS, IPS, IFS)',
-            icon: <Gavel fontSize="small" />,
-            status: 'Popular',
-            tags: ['UPSC', 'Civil Services', 'IAS'],
-            slug: 'upsc-civil-services',
-        },
-        {
-            id: 2,
-            title: 'Bank PO & Clerk',
-            level: 'Intermediate',
-            duration: '6 months',
-            lessons: 35,
-            students: 8900,
-            description: 'Comprehensive preparation for SBI, IBPS, and other bank exams',
-            icon: <AccountBalance fontSize="small" />,
-            status: 'Trending',
-            tags: ['Banking', 'SBI', 'IBPS'],
-            slug: 'bank-po-clerk',
-        },
-        {
-            id: 3,
-            title: 'SSC CGL & CHSL',
-            level: 'Intermediate',
-            duration: '8 months',
-            lessons: 40,
-            students: 7600,
-            description: 'Complete preparation for Staff Selection Commission exams',
-            icon: <WorkspacePremium fontSize="small" />,
-            status: 'Popular',
-            tags: ['SSC', 'CGL', 'Government Jobs'],
-            slug: 'ssc-cgl-chsl',
-        },
-        {
-            id: 4,
-            title: 'State PSC Exams',
-            level: 'Advanced',
-            duration: '10 months',
-            lessons: 48,
-            students: 5600,
-            description: 'Preparation for various State Public Service Commission exams',
-            icon: <Gavel fontSize="small" />,
-            status: 'Top Rated',
-            tags: ['State PSC', 'State Services', 'MPSC'],
-            slug: 'state-psc-exams',
-        },
-        {
-            id: 5,
-            title: 'Railway Recruitment',
-            level: 'Beginner',
-            duration: '4 months',
-            lessons: 28,
-            students: 9800,
-            description: 'Preparation for RRB NTPC, Group D, and other railway exams',
-            icon: <Engineering fontSize="small" />,
-            status: 'Active',
-            tags: ['Railway', 'RRB', 'NTPC'],
-            slug: 'railway-recruitment',
-        },
-        {
-            id: 6,
-            title: 'Teaching Exams',
-            level: 'Intermediate',
-            duration: '5 months',
-            lessons: 32,
-            students: 6700,
-            description: 'Preparation for CTET, UPTET, DSSSB, and other teaching exams',
-            icon: <School fontSize="small" />,
-            status: 'Popular',
-            tags: ['Teaching', 'CTET', 'DSSSB'],
-            slug: 'teaching-exams',
-        },
-        {
-            id: 7,
-            title: 'Police & Defense',
-            level: 'Intermediate',
-            duration: '6 months',
-            lessons: 38,
-            students: 5400,
-            description: 'Preparation for police, defense, and paramilitary forces exams',
-            icon: <HealthAndSafety fontSize="small" />,
-            status: 'Trending',
-            tags: ['Police', 'Defense', 'Paramilitary'],
-            slug: 'police-defense',
-        },
-        {
-            id: 8,
-            title: 'Insurance Exams',
-            level: 'Intermediate',
-            duration: '5 months',
-            lessons: 30,
-            students: 4500,
-            description: 'Preparation for LIC, GIC, and other insurance sector exams',
-            icon: <Business fontSize="small" />,
-            status: 'New',
-            tags: ['Insurance', 'LIC', 'GIC'],
-            slug: 'insurance-exams',
-        },
-        {
-            id: 9,
-            title: 'MBA Entrance Exams',
-            level: 'Advanced',
-            duration: '8 months',
-            lessons: 42,
-            students: 8200,
-            description: 'Preparation for CAT, MAT, XAT, and other MBA entrance exams',
-            icon: <Business fontSize="small" />,
-            status: 'Top Rated',
-            tags: ['MBA', 'CAT', 'Management'],
-            slug: 'mba-entrance-exams',
-        },
-        {
-            id: 10,
-            title: 'Judiciary Exams',
-            level: 'Advanced',
-            duration: '10 months',
-            lessons: 50,
-            students: 3200,
-            description: 'Complete preparation for Judicial Services and law entrance exams',
-            icon: <Gavel fontSize="small" />,
-            status: 'Advanced',
-            tags: ['Judiciary', 'Law', 'Legal'],
-            slug: 'judiciary-exams',
-        },
-        {
-            id: 11,
-            title: 'Engineering Services',
-            level: 'Advanced',
-            duration: '9 months',
-            lessons: 44,
-            students: 4800,
-            description: 'Preparation for IES, GATE, and other engineering services exams',
-            icon: <Engineering fontSize="small" />,
-            status: 'Popular',
-            tags: ['Engineering', 'IES', 'GATE'],
-            slug: 'engineering-services',
-        },
-        {
-            id: 12,
-            title: 'Post Office Exams',
-            level: 'Beginner',
-            duration: '3 months',
-            lessons: 22,
-            students: 7200,
-            description: 'Preparation for India Post and postal department exams',
-            icon: <EmojiEvents fontSize="small" />,
-            status: 'Active',
-            tags: ['Post Office', 'India Post', 'Postal'],
-            slug: 'post-office-exams',
-        },
-    ]
+    const [searchParams, setSearchParams] = useSearchParams()
+    const { subCategory: routeSubParam } = useParams()
+    const rawSubParam = routeSubParam || searchParams.get('subCategory')
+    const canonicalSub = rawSubParam ? (getCanonicalSubCategory('Government Exams', rawSubParam) || rawSubParam) : 'All'
 
-    const handleCardClick = (topic: any) => {
-        setSelectedTopic(topic)
-    }
+    const [selectedSubCategory, setSelectedSubCategory] = useState<string>(canonicalSub)
+    const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '')
 
-    const handleCloseDetail = () => {
-        setSelectedTopic(null)
-    }
-
-    const getLevelColor = (level: string) => {
-        if (isDark) {
-            switch (level) {
-                case 'Beginner': return 'bg-green-900/30 text-green-300'
-                case 'Intermediate': return 'bg-yellow-900/30 text-yellow-300'
-                case 'Advanced': return 'bg-red-900/30 text-red-300'
-                default: return 'bg-gray-700 text-gray-300'
-            }
-        } else {
-            switch (level) {
-                case 'Beginner': return 'bg-green-100 text-green-700'
-                case 'Intermediate': return 'bg-yellow-100 text-yellow-700'
-                case 'Advanced': return 'bg-red-100 text-red-700'
-                default: return 'bg-gray-100 text-gray-700'
-            }
+    useEffect(() => {
+        const currentRaw = routeSubParam || searchParams.get('subCategory')
+        const resolved = currentRaw ? (getCanonicalSubCategory('Government Exams', currentRaw) || currentRaw) : 'All'
+        setSelectedSubCategory(resolved)
+        if (searchParams.get('search') !== null) {
+            setSearchQuery(searchParams.get('search') || '')
         }
+    }, [routeSubParam, searchParams])
+
+    const { courses: apiCourses, coursesLoading } = useCourses(
+        searchQuery,
+        'Government Exams',
+        selectedSubCategory !== 'All' ? selectedSubCategory : undefined
+    )
+
+    const handleSubCategorySelect = (sub: string) => {
+        setSelectedSubCategory(sub)
+        const next = new URLSearchParams(searchParams)
+        if (sub && sub !== 'All') {
+            next.set('subCategory', sub)
+        } else {
+            next.delete('subCategory')
+        }
+        setSearchParams(next, { replace: true })
     }
+
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val)
+        const next = new URLSearchParams(searchParams)
+        if (val.trim()) {
+            next.set('search', val.trim())
+        } else {
+            next.delete('search')
+        }
+        setSearchParams(next, { replace: true })
+    }
+
+    const handleReset = () => {
+        setSelectedSubCategory('All')
+        setSearchQuery('')
+        const next = new URLSearchParams(searchParams)
+        next.delete('subCategory')
+        next.delete('search')
+        setSearchParams(next, { replace: true })
+    }
+
+    const filteredCourses = useMemo(() => {
+        if (!apiCourses || !Array.isArray(apiCourses)) return []
+
+        return apiCourses.filter((course) => {
+            if (!isCategoryMatch(course.category, 'Government Exams')) {
+                return false
+            }
+
+            if (selectedSubCategory !== 'All') {
+                if (!isSubCategoryMatch(course.subCategory, selectedSubCategory)) {
+                    return false
+                }
+            }
+
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim()
+                const matchTitle = (course.title || '').toLowerCase().includes(q)
+                const matchDesc = (course.description || '').toLowerCase().includes(q)
+                const matchSub = (course.subCategory || '').toLowerCase().includes(q)
+                const matchTags = Array.isArray(course.tags) && course.tags.some((t: string) => t.toLowerCase().includes(q))
+                if (!matchTitle && !matchDesc && !matchTags && !matchSub) {
+                    return false
+                }
+            }
+
+            return true
+        })
+    }, [apiCourses, selectedSubCategory, searchQuery])
+
+    const totalLessons = useMemo(() => {
+        return filteredCourses.reduce((sum, c) => sum + (c.subModules?.length || 1), 0)
+    }, [filteredCourses])
 
     return (
         <div className={cn(
@@ -386,7 +174,7 @@ const GovernmentExamsList = () => {
         )}>
             <div className="max-w-7xl mx-auto px-4 py-8">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className={cn(
                             "text-3xl font-bold",
@@ -395,248 +183,338 @@ const GovernmentExamsList = () => {
                             Government Exams
                         </h1>
                         <p className={cn(
-                            "text-sm",
+                            "text-sm mt-1",
                             isDark ? 'text-gray-400' : 'text-gray-500'
                         )}>
-                            Complete preparation for various government competitive exams
+                            Prepare for SSC / CGL, Banking (IBPS), UPSC Prelims, Railways (RRB), and State PSC exams
                         </p>
                     </div>
-                    <ParticleButton
-                        type="button"
-                        className={cn(
-                            "flex items-center px-4 py-2 border rounded-lg text-sm font-medium",
-                            isDark ? "text-slate-200 bg-slate-900 border-slate-800 hover:bg-slate-800" : "text-slate-700 bg-white border-slate-200 hover:bg-slate-50"
-                        )}
-                        successDuration={600}
-                    >
-                        Start Preparation
-                    </ParticleButton>
-                </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className={cn(
-                        "p-4 rounded-lg border",
-                        isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-                    )}>
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? 'text-white' : 'text-gray-900'
-                        )}>12+</p>
-                        <p className={cn(
-                            "text-sm",
-                            isDark ? 'text-gray-400' : 'text-gray-500'
-                        )}>Exam Categories</p>
-                    </div>
-                    <div className={cn(
-                        "p-4 rounded-lg border",
-                        isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-                    )}>
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? 'text-white' : 'text-gray-900'
-                        )}>50K</p>
-                        <p className={cn(
-                            "text-sm",
-                            isDark ? 'text-gray-400' : 'text-gray-500'
-                        )}>Aspirants</p>
-                    </div>
-                    <div className={cn(
-                        "p-4 rounded-lg border",
-                        isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-                    )}>
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? 'text-white' : 'text-gray-900'
-                        )}>450+</p>
-                        <p className={cn(
-                            "text-sm",
-                            isDark ? 'text-gray-400' : 'text-gray-500'
-                        )}>Modules</p>
-                    </div>
-                    <div className={cn(
-                        "p-4 rounded-lg border",
-                        isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-                    )}>
-                        <p className={cn(
-                            "text-2xl font-bold",
-                            isDark ? 'text-white' : 'text-gray-900'
-                        )}>88%</p>
-                        <p className={cn(
-                            "text-sm",
-                            isDark ? 'text-gray-400' : 'text-gray-500'
-                        )}>Success Rate</p>
-                    </div>
-                </div>
-
-                {/* Filter Buttons */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                    {['All', 'Beginner', 'Intermediate', 'Advanced'].map((filter) => (
+                    <div className="flex items-center gap-3">
                         <ParticleButton
-                            key={filter}
                             type="button"
                             className={cn(
-                                "flex items-center px-4 py-2 border rounded-lg text-sm font-medium",
-                                filter === 'All'
-                                    ? isDark
-                                        ? "text-slate-200 bg-slate-800 border-slate-700 hover:bg-slate-700"
-                                        : "text-slate-700 bg-slate-100 border-slate-200 hover:bg-slate-200"
-                                    : isDark
-                                        ? "text-slate-200 bg-slate-900 border-slate-800 hover:bg-slate-800"
-                                        : "text-slate-700 bg-white border-slate-200 hover:bg-slate-50"
+                                "flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                                "bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-500/25"
                             )}
                             successDuration={600}
+                            onClick={() => {
+                                const subParam = selectedSubCategory !== 'All' ? `&subCategory=${encodeURIComponent(selectedSubCategory)}` : ''
+                                navigate(`/dashboard/skills/rag/new?category=Government+Exams${subParam}`)
+                            }}
                         >
-                            {filter}
+                            <Plus className="w-4 h-4" />
+                            Create Course
                         </ParticleButton>
-                    ))}
+                    </div>
                 </div>
 
-                {/* Topics Grid with Card Pattern */}
-                <div className={cn(
-                    "mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-                )}>
-                    {topics.map((topic, index) => (
-                        <div
-                            key={`${topic.title}-${index}`}
-                            className={cn(
-                                "group relative overflow-hidden rounded-xl p-6 text-left transition-all duration-300",
-                                "border will-change-transform",
-                                isDark
-                                    ? "border-slate-800 bg-slate-900/50 hover:border-teal-500/30 hover:bg-slate-900/80 hover:shadow-xl hover:shadow-teal-500/5"
-                                    : "border-slate-200 bg-white hover:shadow-lg hover:shadow-teal-100/20",
-                                "hover:-translate-y-0.5 cursor-pointer"
-                            )}
-                            onClick={() => handleCardClick(topic)}
-                        >
-                            {/* Background Pattern */}
-                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className={cn(
-                                    "absolute inset-0 bg-size[4px_4px]",
-                                    isDark
-                                        ? "bg-[radial-linear(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)]"
-                                        : "bg-[radial-linear(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)]"
-                                )} />
-                            </div>
+                {/* Dynamic Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className={cn(
+                        "p-4 rounded-xl border transition-colors",
+                        isDark ? 'border-gray-700/60 bg-gray-800/60' : 'border-gray-200 bg-gray-50'
+                    )}>
+                        <p className={cn("text-2xl font-bold", isDark ? 'text-white' : 'text-gray-900')}>
+                            {coursesLoading ? '...' : filteredCourses.length}
+                        </p>
+                        <p className={cn("text-xs font-medium uppercase tracking-wider mt-0.5", isDark ? 'text-gray-400' : 'text-gray-500')}>
+                            Active Courses
+                        </p>
+                    </div>
 
-                            {/* Content */}
-                            <div className="relative flex flex-col space-y-3">
-                                {/* Header: Icon + Status + Level */}
-                                <div className="flex items-center justify-between">
-                                    <div className={cn(
-                                        "flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-300",
-                                        isDark
-                                            ? "bg-slate-800 text-slate-300"
-                                            : "bg-slate-100 text-slate-600 group-hover:bg-teal-50"
-                                    )}>
-                                        {topic.icon}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={cn(
-                                            "rounded-lg px-2.5 py-1 text-xs font-medium backdrop-blur-sm transition-colors duration-300",
-                                            isDark
-                                                ? "bg-slate-800 text-slate-300"
-                                                : "bg-slate-100 text-slate-600 group-hover:bg-teal-50"
-                                        )}>
-                                            {topic.status}
-                                        </span>
-                                        <span className={cn(
-                                            "px-2.5 py-1 rounded-full text-xs font-medium",
-                                            getLevelColor(topic.level)
-                                        )}>
-                                            {topic.level}
-                                        </span>
-                                    </div>
-                                </div>
+                    <div className={cn(
+                        "p-4 rounded-xl border transition-colors",
+                        isDark ? 'border-gray-700/60 bg-gray-800/60' : 'border-gray-200 bg-gray-50'
+                    )}>
+                        <p className={cn("text-2xl font-bold", isDark ? 'text-white' : 'text-gray-900')}>
+                            {coursesLoading ? '...' : totalLessons}
+                        </p>
+                        <p className={cn("text-xs font-medium uppercase tracking-wider mt-0.5", isDark ? 'text-gray-400' : 'text-gray-500')}>
+                            Lessons & Modules
+                        </p>
+                    </div>
 
-                                {/* Title & Description */}
-                                <div className="space-y-2">
-                                    <h3 className={cn(
-                                        "text-[15px] font-medium tracking-tight",
-                                        isDark ? "text-white" : "text-slate-900"
-                                    )}>
-                                        {topic.title}
-                                        <span className={cn(
-                                            "ml-2 text-xs font-normal",
-                                            isDark ? "text-slate-400" : "text-slate-500"
-                                        )}>
-                                            {topic.lessons} modules
-                                        </span>
-                                    </h3>
-                                    <p className={cn(
-                                        "text-sm leading-snug",
-                                        isDark ? "text-slate-400" : "text-slate-600"
-                                    )}>
-                                        {topic.description}
-                                    </p>
-                                </div>
+                    <div className={cn(
+                        "p-4 rounded-xl border transition-colors",
+                        isDark ? 'border-gray-700/60 bg-gray-800/60' : 'border-gray-200 bg-gray-50'
+                    )}>
+                        <p className={cn("text-xl font-bold truncate", isDark ? 'text-orange-400' : 'text-orange-600')}>
+                            {selectedSubCategory === 'All' ? '5 Tracks' : selectedSubCategory}
+                        </p>
+                        <p className={cn("text-xs font-medium uppercase tracking-wider mt-0.5", isDark ? 'text-gray-400' : 'text-gray-500')}>
+                            Sub-Category
+                        </p>
+                    </div>
 
-                                {/* Duration, Modules, Aspirants */}
-                                <div className="flex items-center gap-4 text-xs">
-                                    <div className="flex items-center gap-1">
-                                        <AccessTime fontSize="small" className="h-3 w-3" />
-                                        <span className={isDark ? "text-slate-400" : "text-slate-500"}>{topic.duration}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <MenuBook fontSize="small" className="h-3 w-3" />
-                                        <span className={isDark ? "text-slate-400" : "text-slate-500"}>{topic.lessons} modules</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <School fontSize="small" className="h-3 w-3" />
-                                        <span className={isDark ? "text-slate-400" : "text-slate-500"}>{topic.students} aspirants</span>
-                                    </div>
-                                </div>
+                    <div className={cn(
+                        "p-4 rounded-xl border transition-colors",
+                        isDark ? 'border-gray-700/60 bg-gray-800/60' : 'border-gray-200 bg-gray-50'
+                    )}>
+                        <p className={cn("text-2xl font-bold text-orange-500", isDark ? 'text-orange-400' : 'text-orange-600')}>
+                            Video & Interactive
+                        </p>
+                        <p className={cn("text-xs font-medium uppercase tracking-wider mt-0.5", isDark ? 'text-gray-400' : 'text-gray-500')}>
+                            Format
+                        </p>
+                    </div>
+                </div>
 
-                                {/* Tags */}
-                                <div className="flex flex-wrap items-center gap-2 text-xs mt-1">
-                                    {topic.tags?.map((tag, i) => (
-                                        <span
-                                            key={`${tag}-${i}`}
-                                            className={cn(
-                                                "rounded-md px-2 py-1 backdrop-blur-sm transition-all duration-200",
-                                                isDark
-                                                    ? "bg-slate-800 text-slate-300"
-                                                    : "bg-slate-100 text-slate-600 hover:bg-teal-50"
-                                            )}
-                                        >
-                                            #{tag}
-                                        </span>
-                                    ))}
-                                </div>
-
-                                {/* Click to view detail indicator */}
-                                <div className="mt-1 text-xs flex items-center gap-1 text-teal-500">
-                                    <span>Click to view details</span>
-                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* Border linear */}
-                            <div
+                {/* Sub-Category Filter Tabs & Search */}
+                <div className="space-y-4 mb-8">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <div className="relative flex-1 max-w-md">
+                            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-slate-400" : "text-slate-500")} />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                placeholder="Search inside Government Exams..."
                                 className={cn(
-                                    "absolute inset-0 -z-10 rounded-xl p-px transition-opacity duration-300",
+                                    "w-full pl-9 pr-4 py-2 rounded-xl text-sm border outline-none transition-all",
                                     isDark
-                                        ? "bg-linear-to-br from-transparent via-teal-500/20 to-transparent"
-                                        : "bg-linear-to-br from-transparent via-teal-300/30 to-transparent",
-                                    "opacity-0 group-hover:opacity-100"
+                                        ? "bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:border-orange-500"
+                                        : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-orange-500 shadow-sm"
                                 )}
                             />
                         </div>
-                    ))}
+
+                        {(selectedSubCategory !== 'All' || searchQuery) && (
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                className={cn(
+                                    "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors",
+                                    isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"
+                                )}
+                            >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                Reset Filter
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className={cn("text-xs font-semibold uppercase tracking-wider mr-1", isDark ? "text-slate-400" : "text-slate-500")}>
+                            Sub-Categories:
+                        </span>
+                        {['All', ...GOVT_EXAMS_SUB_CATEGORIES].map((subCat) => {
+                            const isActive = selectedSubCategory === subCat
+                            return (
+                                <button
+                                    key={subCat}
+                                    type="button"
+                                    onClick={() => handleSubCategorySelect(subCat)}
+                                    className={cn(
+                                        "flex items-center px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150",
+                                        isActive
+                                            ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
+                                            : isDark
+                                                ? "text-slate-300 bg-slate-800/80 border border-slate-700 hover:bg-slate-700 hover:text-white"
+                                                : "text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200"
+                                    )}
+                                >
+                                    {subCat}
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
+
+                {/* Loading Skeletons */}
+                {coursesLoading && (
+                    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3, 4, 5, 6].map((n) => (
+                            <div
+                                key={n}
+                                className={cn(
+                                    "rounded-xl p-6 border animate-pulse space-y-4",
+                                    isDark ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"
+                                )}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className={cn("w-10 h-10 rounded-lg", isDark ? "bg-slate-800" : "bg-slate-200")} />
+                                    <div className={cn("w-20 h-5 rounded-full", isDark ? "bg-slate-800" : "bg-slate-200")} />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className={cn("w-3/4 h-5 rounded", isDark ? "bg-slate-800" : "bg-slate-200")} />
+                                    <div className={cn("w-full h-4 rounded", isDark ? "bg-slate-800" : "bg-slate-200")} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!coursesLoading && filteredCourses.length === 0 && (
+                    <div className={cn(
+                        "text-center py-16 px-4 rounded-2xl border my-6 transition-colors",
+                        isDark ? "bg-slate-900/40 border-slate-800 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-600"
+                    )}>
+                        <div className="w-12 h-12 mx-auto rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center mb-3">
+                            <AccountBalance fontSize="medium" />
+                        </div>
+                        <h3 className={cn("text-lg font-bold mb-1", isDark ? "text-white" : "text-slate-900")}>
+                            {selectedSubCategory !== 'All'
+                                ? `No courses available for "${selectedSubCategory}".`
+                                : searchQuery
+                                    ? `No courses match "${searchQuery}".`
+                                    : "No Government Exams courses created yet."}
+                        </h3>
+                        <p className="text-sm max-w-md mx-auto mb-6">
+                            {selectedSubCategory !== 'All'
+                                ? `No courses have been created under Government Exams → "${selectedSubCategory}". Click below to create one.`
+                                : searchQuery
+                                    ? "Try searching for a different keyword or reset your filter."
+                                    : "Courses created in Course Creation under Government Exams will appear here automatically."}
+                        </p>
+
+                        <div className="flex items-center justify-center gap-3">
+                            <ParticleButton
+                                type="button"
+                                className={cn(
+                                    "flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-white transition-all",
+                                    "bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/20"
+                                )}
+                                successDuration={600}
+                                onClick={() => {
+                                    const subParam = selectedSubCategory !== 'All' ? `&subCategory=${encodeURIComponent(selectedSubCategory)}` : ''
+                                    navigate(`/dashboard/skills/rag/new?category=Government+Exams${subParam}`)
+                                }}
+                            >
+                                <Plus className="w-4 h-4" />
+                                {selectedSubCategory !== 'All'
+                                    ? `Create ${selectedSubCategory} Course`
+                                    : "Create Government Exams Course"}
+                            </ParticleButton>
+
+                            {(selectedSubCategory !== 'All' || searchQuery) && (
+                                <button
+                                    type="button"
+                                    onClick={handleReset}
+                                    className={cn(
+                                        "px-4 py-2.5 rounded-xl text-xs font-medium border transition-colors",
+                                        isDark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                                    )}
+                                >
+                                    Reset Filters
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Dynamic Courses Grid */}
+                {!coursesLoading && filteredCourses.length > 0 && (
+                    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {filteredCourses.map((course, index) => (
+                            <div
+                                key={`${course.id}-${index}`}
+                                className={cn(
+                                    "group relative overflow-hidden rounded-xl p-6 text-left transition-all duration-300",
+                                    "border will-change-transform",
+                                    isDark
+                                        ? "border-slate-800 bg-slate-900/50 hover:border-orange-500/30 hover:bg-slate-900/80 hover:shadow-xl hover:shadow-orange-500/5"
+                                        : "border-slate-200 bg-white hover:shadow-lg hover:shadow-orange-100/20",
+                                    "hover:-translate-y-0.5 cursor-pointer"
+                                )}
+                                onClick={() => setSelectedCourse(course)}
+                            >
+                                <div className="relative flex flex-col space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className={cn(
+                                            "flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-300",
+                                            isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600 group-hover:bg-orange-50"
+                                        )}>
+                                            {getSubCategoryIcon(course.subCategory)}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors duration-300",
+                                                getSubCategoryBadgeStyle(course.subCategory, isDark)
+                                            )}>
+                                                {course.subCategory || 'Government Exams'}
+                                            </span>
+                                            <span className={cn(
+                                                "flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border",
+                                                course.videoType === 'youtube'
+                                                    ? isDark ? "bg-red-950/30 text-red-400 border-red-800/40" : "bg-red-50 text-red-600 border-red-200"
+                                                    : isDark ? "bg-orange-950/30 text-orange-400 border-orange-800/40" : "bg-orange-50 text-orange-600 border-orange-200"
+                                            )}>
+                                                <PlayArrow sx={{ fontSize: 13 }} />
+                                                {course.videoType === 'youtube' ? 'YouTube' : 'Video'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <h3 className={cn("text-[15px] font-semibold tracking-tight", isDark ? "text-white" : "text-slate-900")}>
+                                            {course.title}
+                                            <span className={cn("ml-2 text-xs font-normal", isDark ? "text-slate-400" : "text-slate-500")}>
+                                                {course.subModules?.length || 0} {(course.subModules?.length || 0) === 1 ? 'module' : 'modules'}
+                                            </span>
+                                        </h3>
+                                        <p className={cn("text-xs leading-snug line-clamp-2", isDark ? "text-slate-400" : "text-slate-600")}>
+                                            {course.description || 'Comprehensive Government Exams preparation module.'}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-xs">
+                                        <div className="flex items-center gap-1 text-orange-500 font-semibold">
+                                            <MenuBook fontSize="small" className="h-3.5 w-3.5" />
+                                            <span>{course.subModules?.length || 0} {(course.subModules?.length || 0) === 1 ? 'module' : 'modules'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <AccessTime fontSize="small" className="h-3 w-3" />
+                                            <span className={isDark ? "text-slate-400" : "text-slate-500"}>
+                                                {(course.subModules || []).reduce((acc, sm) => acc + (sm.videos?.length || (sm.videoUrl ? 1 : 0)), 0) || 1} lessons
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {Array.isArray(course.tags) && course.tags.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-1.5 text-xs mt-1">
+                                            {course.tags.slice(0, 3).map((tag, i) => (
+                                                <span
+                                                    key={`${tag}-${i}`}
+                                                    className={cn(
+                                                        "rounded-md px-2 py-0.5 text-[11px] border transition-all duration-200",
+                                                        isDark ? "bg-slate-800 text-slate-300 border-slate-700" : "bg-slate-100 text-slate-600 border-slate-200 group-hover:bg-orange-50"
+                                                    )}
+                                                >
+                                                    #{tag}
+                                                </span>
+                                            ))}
+                                            {course.tags.length > 3 && (
+                                                <span className={cn("text-[11px]", isDark ? "text-slate-400" : "text-slate-500")}>
+                                                    +{course.tags.length - 3} more
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-1 text-xs flex items-center gap-1 text-orange-500 font-medium">
+                                        <span>Click to watch & view modules</span>
+                                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {/* Nested Detail Component - Shows when card is clicked */}
-            {selectedTopic && (
-                <ExamDetail 
-                    topic={selectedTopic} 
-                    onClose={handleCloseDetail} 
+            {selectedCourse && (
+                <CourseDetailModal 
+                    course={selectedCourse} 
+                    onClose={() => setSelectedCourse(null)} 
                 />
             )}
         </div>
     )
 }
 
+export { GovernmentExamsList as GovernmentExams }
 export default GovernmentExamsList

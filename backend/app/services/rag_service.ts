@@ -389,6 +389,7 @@ export default class RagService {
   public async queryCourses(params: {
     query?: string
     category?: string
+    subCategory?: string
     instituteId?: number | null
     top_k?: number
     page?: number
@@ -397,6 +398,7 @@ export default class RagService {
     const limit = Math.max(1, Math.min(params.top_k ?? 10, 50))
     const offset = Math.max(0, (params.page ?? 0) * limit)
     const category = (params.category ?? '').trim()
+    const subCategory = (params.subCategory ?? '').trim()
     const instituteId = params.instituteId ?? null
 
     // If query is empty, return recent courses ordered by creation date
@@ -404,6 +406,9 @@ export default class RagService {
       let qb = db.from('rag_courses').select('*')
       if (category) {
         qb = qb.whereILike('category', category)
+      }
+      if (subCategory) {
+        qb = qb.whereILike('sub_category', subCategory)
       }
       if (instituteId !== null) {
         qb = qb.where((builder) => {
@@ -494,6 +499,13 @@ export default class RagService {
       if (category && String(courseRow.category).toLowerCase() !== category.toLowerCase()) {
         continue
       }
+      // Sub-category filter verification
+      if (
+        subCategory &&
+        String(courseRow.sub_category || '').toLowerCase() !== subCategory.toLowerCase()
+      ) {
+        continue
+      }
       // Institute filter verification
       if (
         instituteId !== null &&
@@ -533,16 +545,43 @@ export default class RagService {
    */
   public async listCourses(params: {
     category?: string
+    subCategory?: string
+    query?: string
     instituteId?: number | null
     limit?: number
     page?: number
   }) {
-    const limit = Math.max(1, Math.min(params.limit ?? 10, 50))
+    const limit = Math.max(1, Math.min(params.limit ?? 50, 100))
     const offset = Math.max(0, (params.page ?? 0) * limit)
 
     let qb = db.from('rag_courses').select('*')
     if (params.category) {
-      qb = qb.whereILike('category', params.category)
+      const cat = params.category.trim()
+      const catHyphen = cat.replace(/\s+/g, '-')
+      const catSpace = cat.replace(/-/g, ' ')
+      qb = qb.where((builder) => {
+        builder
+          .whereILike('category', cat)
+          .orWhereILike('category', catHyphen)
+          .orWhereILike('category', catSpace)
+      })
+    }
+    if (params.subCategory) {
+      const sub = params.subCategory.trim()
+      const subHyphen = sub.replace(/\s+/g, '-')
+      const subSpace = sub.replace(/-/g, ' ')
+      qb = qb.where((builder) => {
+        builder
+          .whereILike('sub_category', sub)
+          .orWhereILike('sub_category', subHyphen)
+          .orWhereILike('sub_category', subSpace)
+      })
+    }
+    if (params.query && params.query.trim()) {
+      const q = `%${params.query.trim()}%`
+      qb = qb.where((builder) => {
+        builder.whereILike('title', q).orWhereILike('description', q)
+      })
     }
     if (params.instituteId !== undefined && params.instituteId !== null) {
       const targetInstituteId = params.instituteId

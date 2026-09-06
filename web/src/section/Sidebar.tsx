@@ -155,8 +155,12 @@ const Sidebar = ({ isMobileOpen, toggleMobileSidebar, useUiSidebar = false }: Si
 
         if (link.subLinks) {
           for (const subLink of link.subLinks) {
-            if (currentPath === subLink.to || currentPath.startsWith(subLink.to + '/')) {
+            const subBasePath = subLink.to.split('?')[0];
+            if (currentPath === subBasePath || currentPath.startsWith(subBasePath + '/')) {
               setExpandedLink(link.to);
+              if (subLink.subLinks && subLink.subLinks.length > 0) {
+                setExpandedSubLink(subLink.to);
+              }
               return;
             }
           }
