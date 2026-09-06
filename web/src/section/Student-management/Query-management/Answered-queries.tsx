@@ -28,7 +28,9 @@ const AnsweredQuestions: React.FC<AnsweredQuestionsProps> = ({ onQuestionSelect 
         const mapped: Question[] = queries
             .filter((q) => q.status === 'resolved' || q.status === 'closed')
             .map((q) => ({
-                id: q.id,
+                id: q.id ?? q.uuid ?? Math.random().toString(),
+                uuid: q.uuid,
+                syncStatus: q.syncStatus,
                 studentName: q.student?.studentName || `Student ${q.studentId}`,
                 studentId: q.student?.studentId || String(q.studentId),
                 category: q.category || 'General',
@@ -41,7 +43,7 @@ const AnsweredQuestions: React.FC<AnsweredQuestionsProps> = ({ onQuestionSelect 
                 answeredBy: q.assignedFaculty?.facultyName || null,
                 resolvedAt: q.resolvedAt || null,
                 priority: q.priority,
-                instituteId: q.instituteId,
+                instituteId: Number(q.instituteId),
                 assignedFacultyId: q.assignedFacultyId,
                 resolvedByUserId: q.resolvedByUserId,
                 isActive: q.isActive,

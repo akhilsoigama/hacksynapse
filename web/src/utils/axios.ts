@@ -284,10 +284,13 @@ export const endpoints = {
   },
   studentQuery: {
     getAll: '/student-queries',
-    details: (id: number) => `/student-queries/${id}`,
+    details: (id: number | string) => `/student-queries/${id}`,
+    byId: (id: number | string) => `/api/studentQuery/${id}`,
     create: '/student-queries',
-    update: (id: number) => `/student-queries/${id}`,
-    delete: (id: number) => `/student-queries/${id}`,
+    update: (id: number | string) => `/student-queries/${id}`,
+    delete: (id: number | string) => `/student-queries/${id}`,
+    sync: '/api/studentQuery/sync',
+    api: '/api/studentQuery',
     progressReport: '/student-queries/progress-report',
   },
   onlineLibrary: {

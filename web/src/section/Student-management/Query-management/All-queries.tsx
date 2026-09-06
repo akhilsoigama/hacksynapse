@@ -29,7 +29,9 @@ const AllQuestions: React.FC<AllQuestionsProps> = ({ onTabChange, onQuestionSele
 
   useEffect(() => {
     const mapped: Question[] = queries.map((q) => ({
-      id: q.id,
+      id: q.id ?? q.uuid ?? Math.random().toString(),
+      uuid: q.uuid,
+      syncStatus: q.syncStatus,
       studentName: q.student?.studentName || `Student ${q.studentId}`,
       studentId: q.student?.studentId || String(q.studentId),
       category: q.category || 'General',
@@ -41,7 +43,7 @@ const AllQuestions: React.FC<AllQuestionsProps> = ({ onTabChange, onQuestionSele
       answeredBy: q.assignedFaculty?.facultyName || undefined,
       resolvedAt: q.resolvedAt || undefined,
       priority: q.priority,
-      instituteId: q.instituteId,
+      instituteId: Number(q.instituteId),
       assignedFacultyId: q.assignedFacultyId,
       resolvedByUserId: q.resolvedByUserId,
       isActive: q.isActive,
