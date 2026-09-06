@@ -2,9 +2,12 @@ export type StudentQueryPriority = 'low' | 'medium' | 'high';
 export type StudentQueryStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 
 export interface StudentQueryItem {
-  id: number;
-  studentId: number;
-  instituteId: number;
+  id?: number;
+  uuid?: string;
+  studentId?: number;
+  instituteId?: number | string;
+  departmentId?: number | string | null;
+  createdBy?: number | string;
   assignedFacultyId?: number | null;
   resolvedByUserId?: number | null;
   title: string;
@@ -28,6 +31,22 @@ export interface StudentQueryItem {
     facultyName?: string;
     facultyId?: string;
   };
+  syncStatus?: 'pending' | 'syncing' | 'synced' | 'failed';
+}
+
+export interface StudentQuerySyncQueueItem {
+  id?: number;
+  uuid: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  status: 'pending' | 'syncing' | 'failed' | 'completed';
+  instituteId: string | number;
+  departmentId?: string | number | null;
+  createdBy: string | number;
+  payload: unknown;
+  retryCount?: number;
+  lastAttemptAt?: string;
+  error?: string;
+  createdAt?: number;
 }
 
 export interface StudentQueryListFilters {

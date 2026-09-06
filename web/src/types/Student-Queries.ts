@@ -1,5 +1,6 @@
 export interface Question {
-  id: number;
+  id: number | string;
+  uuid?: string;
   studentId: number | string;
   instituteId?: number;
   assignedFacultyId?: number | null;
@@ -15,6 +16,7 @@ export interface Question {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  syncStatus?: 'pending' | 'syncing' | 'synced' | 'failed';
 
   studentName: string;
   answeredBy?: string | null;

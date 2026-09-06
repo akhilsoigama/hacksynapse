@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api, { fetcher, endpoints } from "../utils/axios";
 import { User, UserData as AppUserData, isSuperAdmin, isInstitute, isFacultyUser, isStudent } from "../types/user";
-import { clearUserDB, getUserDB, setUserDB } from "../indexDB";
+import { clearUserDB, getUserDB, setUserDB, clearStudentQueryDB } from "../indexDB";
 import {
   userAtom,
   userIdAtom,
@@ -148,6 +148,7 @@ export const useUser = () => {
 
     if (status === 401) {
       clearUserDB();
+      clearStudentQueryDB().catch(() => {});
       localStorage.removeItem('cachedUserData');
       localStorage.removeItem('lms:user');
       setUser(null);
@@ -167,6 +168,7 @@ export const useUser = () => {
     }
 
     await clearUserDB();
+    await clearStudentQueryDB().catch(() => {});
     localStorage.removeItem('cachedUserData');
     localStorage.removeItem('lms:user');
     localStorage.removeItem('lms:authToken');

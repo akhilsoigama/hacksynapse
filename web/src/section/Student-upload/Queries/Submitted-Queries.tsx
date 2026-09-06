@@ -11,6 +11,7 @@ import {
   updateStudentQuery,
   useStudentQueries,
 } from '../../../action/studentQuery';
+import { useStudentQueryOfflineSync } from '../../../hooks/useStudentQueryOfflineSync';
 import { NewQuestion, Question } from '../../../types/Student-Queries';
 import StudentQueryQuestionCard from './components/StudentQueryQuestionCard';
 import StudentQueryStats from './components/StudentQueryStats';
@@ -29,12 +30,13 @@ const StudentQuestions: React.FC = () => {
   const isDark = mode === 'dark';
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
+  const [expandedQuestion, setExpandedQuestion] = useState<number | string | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  const [isDeletingId, setIsDeletingId] = useState<number | string | null>(null);
 
-  const { queries, queriesLoading, queriesMutate } = useStudentQueries();
+  const { isSyncing, syncCount, triggerSync } = useStudentQueryOfflineSync();
+  const { queries, queriesLoading, queriesMutate, isOnline } = useStudentQueries();
 
   const editMethods = useForm<NewQuestion>({
     defaultValues: {
@@ -49,13 +51,15 @@ const StudentQuestions: React.FC = () => {
 
   const questions = useMemo<Question[]>(() => {
     return queries.map((q) => ({
-      id: q.id,
+      id: q.id ?? q.uuid ?? Math.random().toString(),
+      uuid: q.uuid,
+      syncStatus: q.syncStatus,
       title: q.title,
       description: q.description,
       createdAt: q.createdAt,
       updatedAt: q.updatedAt,
-      studentId: q.studentId,
-      instituteId: q.instituteId,
+      studentId: q.studentId ?? 0,
+      instituteId: Number(q.instituteId),
       assignedFacultyId: q.assignedFacultyId,
       resolvedByUserId: q.resolvedByUserId,
       resolvedAt: q.resolvedAt ?? undefined,
@@ -185,8 +189,27 @@ const StudentQuestions: React.FC = () => {
       >
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-3 inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
-              My Queries
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                My Queries
+              </span>
+              {!isOnline && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Offline Mode
+                </span>
+              )}
+              {syncCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => triggerSync()}
+                  disabled={isSyncing || !isOnline}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800 transition hover:bg-sky-100 disabled:opacity-60 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full bg-sky-500 ${isSyncing ? 'animate-ping' : ''}`} />
+                  {isSyncing ? 'Syncing...' : `${syncCount} Pending Sync`}
+                </button>
+              )}
             </div>
             <h1 className={`text-3xl font-semibold tracking-tight sm:text-4xl ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>Track submitted questions</h1>
             <p className={`mt-2 max-w-2xl text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
@@ -275,7 +298,7 @@ const StudentQuestions: React.FC = () => {
 
           return (
             <StudentQueryQuestionCard
-              key={question.id}
+              key={question.uuid || question.id}
               question={question}
               expanded={expandedQuestion === question.id}
               onToggle={() => setExpandedQuestion(expandedQuestion === question.id ? null : question.id)}

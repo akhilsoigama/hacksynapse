@@ -1,7 +1,7 @@
 import { openDB, deleteDB, IDBPDatabase } from "idb";
 
 const DB_NAME = "ruralSpark";
-const DB_VERSION = 1.3;
+const DB_VERSION = 1.4;
 
 export const USER_STORE = "users";
 export const ROLE_STORE = "userRole";
@@ -23,6 +23,8 @@ export const MATERIAL_STORE = "material";
 export const MATERIAL_SYNC_QUEUE_STORE = "material_sync_queue";
 export const FACULTY_LEAVE_CACHE_STORE = "facultyLeavesCache";
 export const STUDENT_QUERY_CACHE_STORE = "studentQueriesCache";
+export const STUDENT_QUERY_STORE = "studentQuery";
+export const STUDENT_QUERY_SYNC_QUEUE_STORE = "studentQuery_sync_queue";
 export const TRANSLATION_CACHE_STORE = "translationCache";
 export const PROGRESS_CACHE_STORE = "progressCache";
 export const CLOUDINARY_CACHE_STORE = "cloudinaryCache";
@@ -102,6 +104,20 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
         db.createObjectStore(CLOUDINARY_CACHE_STORE, { keyPath: "key" });
         db.createObjectStore(ASSIGNMENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
         db.createObjectStore(GOVT_EVENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
+
+        if (!db.objectStoreNames.contains(MATERIAL_STORE)) {
+          db.createObjectStore(MATERIAL_STORE, { keyPath: "id", autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(MATERIAL_SYNC_QUEUE_STORE)) {
+          db.createObjectStore(MATERIAL_SYNC_QUEUE_STORE, { keyPath: "id", autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(STUDENT_QUERY_STORE)) {
+          const sqStore = db.createObjectStore(STUDENT_QUERY_STORE, { keyPath: "id", autoIncrement: true });
+          sqStore.createIndex("uuid", "uuid", { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STUDENT_QUERY_SYNC_QUEUE_STORE)) {
+          db.createObjectStore(STUDENT_QUERY_SYNC_QUEUE_STORE, { keyPath: "id", autoIncrement: true });
+        }
       },
 
     }).catch((error) => {
