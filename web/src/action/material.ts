@@ -13,14 +13,14 @@ import { useUser } from '../atoms/userAtom';
 import { userAtom } from '../store/atoms/user.atoms';
 import { getDefaultStore } from 'jotai';
 import type { User } from '../types/user';
-import {
-  getMaterialDB,
-  setMaterialDB,
-  getMaterialByIdDB,
+import { 
   addToMaterialSyncQueue,
+  getMaterialByIdDB,
+  getMaterialDB,
   getPendingMaterialSyncQueue,
-  verifyMaterialTenantAndScope,
-} from '../indexDB';
+  setMaterialDB,
+  verifyMaterialTenantAndScope } from '@/indexDB/material';
+
 
 // ----------------------------------------------------------------------
 // SWR Options

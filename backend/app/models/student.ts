@@ -109,9 +109,11 @@ export default class Student extends BaseModel {
   declare department: BelongsTo<typeof Department>
 
   @beforeSave()
-   public static async hashPassword(student: Student) {
+  public static async hashPassword(student: Student) {
     if (student.$dirty.studentPassword) {
-      student.studentPassword = await hash.make(student.studentPassword) 
+      if (!hash.isValidHash(student.studentPassword)) {
+        student.studentPassword = await hash.make(student.studentPassword)
+      }
     }
   }
 

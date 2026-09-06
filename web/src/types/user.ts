@@ -55,6 +55,7 @@ export interface User {
   instituteId?: number | null;
   facultyId?: number | null;
   departmentId?: number | null;
+  studentId?: number | null;
   isEmailVerified?: boolean;
   isMobileVerified?: boolean;
   isActive?: boolean;

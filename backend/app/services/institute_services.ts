@@ -4,6 +4,8 @@ import { HttpContext } from '@adonisjs/core/http'
 import { errorHandler } from '../helper/error_handler.js'
 import Institute from '#models/institute'
 import Role from '#models/role'
+import User from '#models/user'
+import UserRepository from '../modules/auth/repositories/UserRepository.js'
 import { createInstituteValidator, updateInstituteValidator } from '#validators/institute'
 import EmailService from './email_services.js'
 import { generateCredentialPassword } from '../helper/password_generator.js'
@@ -129,6 +131,14 @@ export default class instituteController {
         })
       }
 
+      const existingUser = await User.query().where('email', requestData.instituteEmail).first()
+      if (existingUser) {
+        return this.ctx.response.status(422).send({
+          status: false,
+          message: messages.institute_already_exists,
+        })
+      }
+
       const validatedData = await createInstituteValidator.validate(requestData)
       const instituteRole = await Role.query().where('roleKey', 'institute').first()
       const plainPassword = requestData.institutePassword || generateCredentialPassword('INS')
@@ -148,6 +158,19 @@ export default class instituteController {
       }
 
       const institute = await Institute.create(instituteData)
+
+      // Synchronize to users table with institute role
+      const userRepo = new UserRepository()
+      const user = await userRepo.upsertInstituteUser({
+        email: institute.instituteEmail,
+        fullName: institute.instituteName,
+        password: institute.institutePassword,
+        mobile: institute.institutePhone || '0000000000',
+        instituteId: institute.id,
+        isActive: institute.isActive,
+      })
+      await userRepo.assignRoleIfMissing(user, instituteRole.id)
+
       this.sendEmail(
         institute.instituteEmail,
         instituteData.institutePassword,
@@ -246,6 +269,17 @@ export default class instituteController {
 
       existinginstitute.merge(validatedData)
       await existinginstitute.save()
+
+      // Synchronize changes to linked User
+      const userRepo = new UserRepository()
+      await userRepo.upsertInstituteUser({
+        email: existinginstitute.instituteEmail,
+        fullName: existinginstitute.instituteName,
+        password: validatedData.institutePassword ? existinginstitute.institutePassword : '',
+        mobile: existinginstitute.institutePhone || '0000000000',
+        instituteId: existinginstitute.id,
+        isActive: existinginstitute.isActive,
+      })
 
       await existinginstitute.load('role', (q) => q.select(['id', 'roleName', 'roleKey']))
 

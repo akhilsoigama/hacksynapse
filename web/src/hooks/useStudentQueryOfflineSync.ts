@@ -1,21 +1,20 @@
-// src/hooks/useMaterialOfflineSync.ts
+// src/hooks/useStudentQueryOfflineSync.ts
 import { useEffect, useState, useCallback, useRef } from 'react';
-import axiosInstance from '../utils/axios';
+import axiosInstance, { endpoints } from '../utils/axios';
 import { useUser } from '../atoms/userAtom';
-import { 
-  getMaterialByIdDB,
-  getPendingMaterialSyncQueue,
-  removeMaterialSyncQueueItem,
-  setMaterialDB,
-  updateMaterialSyncQueueItem,
-
- } from '@/indexDB/material';
+import {
+  getStudentQueryByIdDB,
+  getPendingStudentQuerySyncQueue,
+  removeStudentQuerySyncQueueItem,
+  setStudentQueryDB,
+  updateStudentQuerySyncQueueItem,
+} from '@/indexDB/studentQuery';
 import { mutate as globalMutate } from 'swr';
 import { toast } from 'sonner';
 
 const MAX_RETRY_COUNT = 3;
 
-export function useMaterialOfflineSync() {
+export function useStudentQueryOfflineSync() {
   const { user } = useUser();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncCount, setSyncCount] = useState(0);
@@ -35,7 +34,7 @@ export function useMaterialOfflineSync() {
       setIsSyncing(true);
 
       // 1. Read pending tasks and validate tenant/user scope
-      const pendingTasks = await getPendingMaterialSyncQueue(user);
+      const pendingTasks = await getPendingStudentQuerySyncQueue(user);
       if (pendingTasks.length === 0) {
         setSyncCount(0);
         return;
@@ -45,7 +44,7 @@ export function useMaterialOfflineSync() {
 
       // 2. Filter out tasks that exceeded max retries or permanent authorization failure
       const eligibleTasks = pendingTasks.filter(
-        (task) => (task.retryCount ?? 0) < MAX_RETRY_COUNT
+        (task) => (task.retryCount ?? 0) < MAX_RETRY_COUNT && task.status !== 'completed'
       );
 
       if (eligibleTasks.length === 0) {
@@ -55,32 +54,57 @@ export function useMaterialOfflineSync() {
       // Mark tasks as syncing
       for (const task of eligibleTasks) {
         if (task.id) {
-          await updateMaterialSyncQueueItem(task.id, { status: 'syncing' });
+          await updateStudentQuerySyncQueueItem(task.id, { status: 'syncing' });
         }
       }
 
       // 3. Prepare payload for bulk sync
-      const payloadItems = eligibleTasks.map((t) => ({
-        uuid: t.uuid,
-        action: t.action,
-        instituteId: t.instituteId,
-        departmentId: t.departmentId,
-        createdBy: t.createdBy,
-        payload: t.payload,
-        ...t.payload,
-      }));
-
-      // 4. Send to POST /api/material/sync
-      const response = await axiosInstance.post('/api/material/sync', {
-        items: payloadItems,
+      const payloadItems = eligibleTasks.map((t) => {
+        const payloadObj =
+          typeof t.payload === 'object' && t.payload !== null
+            ? (t.payload as Record<string, unknown>)
+            : {};
+        return {
+          uuid: t.uuid,
+          action: t.action,
+          instituteId: t.instituteId,
+          departmentId: t.departmentId,
+          createdBy: t.createdBy,
+          payload: t.payload,
+          ...payloadObj,
+        };
       });
+
+      // 4. Send to sync endpoint (supporting /api/studentQuery/sync and /student-queries/sync)
+      let response: { data?: { results?: Array<{ uuid: string; status: 'synced' | 'failed' | 'rejected'; id?: number; error?: string }> } } | null = null;
+
+      try {
+        const syncUrl = endpoints.studentQuery?.sync || '/api/studentQuery/sync';
+        response = await axiosInstance.post(syncUrl, {
+          items: payloadItems,
+        });
+      } catch (err: unknown) {
+        // Fallback to /student-queries/sync if /api/studentQuery/sync returns 404
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404) {
+          try {
+            response = await axiosInstance.post('/student-queries/sync', {
+              items: payloadItems,
+            });
+          } catch {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
 
       const results: Array<{
         uuid: string;
         status: 'synced' | 'failed' | 'rejected';
         id?: number;
         error?: string;
-      }> = response.data?.results || [];
+      }> = response?.data?.results || [];
 
       let syncedSuccessCount = 0;
 
@@ -92,19 +116,20 @@ export function useMaterialOfflineSync() {
         if (result.status === 'synced') {
           syncedSuccessCount++;
           // A. Remove completed item from sync queue
-          await removeMaterialSyncQueueItem(matchingTask.id);
+          await removeStudentQuerySyncQueueItem(matchingTask.id);
 
           // B. Update local IndexedDB record with server ID & synced status
-          const localRecord = await getMaterialByIdDB(result.uuid, user);
+          const localRecord = await getStudentQueryByIdDB(result.uuid, user);
           if (localRecord) {
             localRecord.id = result.id || localRecord.id;
             localRecord.syncStatus = 'synced';
-            await setMaterialDB(localRecord);
+            await setStudentQueryDB(localRecord);
           }
         } else {
           // Failure handling: increment retryCount or mark failed
           const isAuthOrValidationError =
             result.error?.includes('Forbidden') ||
+            result.error?.includes('Unauthorized') ||
             result.error?.includes('department') ||
             result.error?.includes('validation');
 
@@ -114,7 +139,7 @@ export function useMaterialOfflineSync() {
               ? 'failed'
               : 'pending';
 
-          await updateMaterialSyncQueueItem(matchingTask.id, {
+          await updateStudentQuerySyncQueueItem(matchingTask.id, {
             status: newStatus,
             retryCount: newRetryCount,
             lastAttemptAt: new Date().toISOString(),
@@ -128,20 +153,24 @@ export function useMaterialOfflineSync() {
       // 6. Refresh UI if any item succeeded
       if (syncedSuccessCount > 0) {
         toast.success(
-          `Successfully synchronized ${syncedSuccessCount} study material(s).`
+          `Successfully synchronized ${syncedSuccessCount} student query/queries.`
         );
-        await globalMutate((key) => typeof key === 'string' && key.startsWith('/api/material'));
+        await globalMutate(
+          (key) =>
+            typeof key === 'string' &&
+            (key.startsWith('/student-queries') || key.startsWith('/api/studentQuery'))
+        );
       }
 
       // Re-read remaining pending count
-      const remaining = await getPendingMaterialSyncQueue(user);
+      const remaining = await getPendingStudentQuerySyncQueue(user);
       setSyncCount(remaining.length);
     } catch (err: unknown) {
-      // Network or general server error: keep items for next retry
-      const pendingTasks = await getPendingMaterialSyncQueue(user);
+      // Network or general server error: reset syncing status to pending for next retry
+      const pendingTasks = await getPendingStudentQuerySyncQueue(user);
       for (const task of pendingTasks) {
         if (task.id && task.status === 'syncing') {
-          await updateMaterialSyncQueueItem(task.id, {
+          await updateStudentQuerySyncQueueItem(task.id, {
             status: 'pending',
             retryCount: (task.retryCount ?? 0) + 1,
             lastAttemptAt: new Date().toISOString(),

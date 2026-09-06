@@ -16,6 +16,7 @@ import {
   STUDENT_QUERY_CACHE_STORE,
   STUDENT_CACHE_STORE,
   initDB,
+  ASSIGNMENT_SYNC_QUEUE_STORE,
 } from "./DBConnect";
 
 export type ModuleCacheEntry<T = unknown> = {
@@ -37,7 +38,8 @@ export type ModuleCacheStoreName =
   | typeof QUIZ_ATTEMPT_CACHE_STORE
   | typeof MATERIAL_CACHE_STORE
   | typeof FACULTY_LEAVE_CACHE_STORE
-  | typeof STUDENT_QUERY_CACHE_STORE;
+  | typeof STUDENT_QUERY_CACHE_STORE
+  | typeof ASSIGNMENT_SYNC_QUEUE_STORE;
 
 const moduleStoreByEndpoint: Array<{ pattern: RegExp; store: ModuleCacheStoreName }> = [
   { pattern: /^\/lectures(?:\/|\?|$)/, store: LECTURE_CACHE_STORE },
@@ -53,6 +55,7 @@ const moduleStoreByEndpoint: Array<{ pattern: RegExp; store: ModuleCacheStoreNam
   { pattern: /^\/student-queries(?:\/|\?|$)/, store: STUDENT_QUERY_CACHE_STORE },
   { pattern: /^\/quizzes(?:\/|\?|$)/, store: QUIZ_CACHE_STORE },
   { pattern: /^\/quiz-attempts(?:\/|\?|$)/, store: QUIZ_ATTEMPT_CACHE_STORE },
+  { pattern: /^\/assignment-sync-queue(?:\/|\?|$)/, store: ASSIGNMENT_SYNC_QUEUE_STORE },
 ];
 
 export const getModuleCacheStoreName = (url: string): ModuleCacheStoreName | null => {

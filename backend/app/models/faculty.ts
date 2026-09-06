@@ -72,7 +72,9 @@ export default class Faculty extends BaseModel {
   @beforeSave()
   public static async hashPassword(faculty: Faculty) {
     if (faculty.$dirty.facultyPassword) {
-      faculty.facultyPassword = await hash.make(faculty.facultyPassword) 
+      if (!hash.isValidHash(faculty.facultyPassword)) {
+        faculty.facultyPassword = await hash.make(faculty.facultyPassword)
+      }
     }
   }
 

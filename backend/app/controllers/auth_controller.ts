@@ -249,56 +249,19 @@ export default class AuthController {
 
   private async syncInstituteToUser(institute: Institute) {
     try {
-      // Deleted users bhi dhundo — whereNull hatao
-      let user = await User.query()
-        .where('email', institute.instituteEmail)
-        .where('userType', 'institute')
-        .first()
+      const userRepo = new UserRepository()
+      const user = await userRepo.upsertInstituteUser({
+        email: institute.instituteEmail,
+        fullName: institute.instituteName,
+        password: institute.institutePassword,
+        mobile: institute.institutePhone || '0000000000',
+        instituteId: institute.id,
+        isActive: institute.isActive,
+      })
 
-      if (user) {
-        // Agar deleted tha toh restore karo
-        await db.rawQuery(
-          `UPDATE users SET 
-          full_name = ?,
-          mobile = ?,
-          institute_id = ?,
-          is_active = ?,
-          password = ?,
-          deleted_at = NULL,
-          updated_at = NOW()
-         WHERE id = ?`,
-          [
-            institute.instituteName,
-            institute.institutePhone || '0000000000',
-            institute.id,
-            institute.isActive,
-            institute.institutePassword,
-            user.id,
-          ]
-        )
-
-        user = await User.findOrFail(user.id)
-      } else {
-        await db.rawQuery(
-          `INSERT INTO users (full_name, email, password, user_type, institute_id, mobile, is_active, is_email_verified, is_mobile_verified, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [
-            institute.instituteName,
-            institute.instituteEmail,
-            institute.institutePassword,
-            'institute',
-            institute.id,
-            institute.institutePhone || '0000000000',
-            institute.isActive,
-            false,
-            false,
-          ]
-        )
-
-        user = await User.query()
-          .where('email', institute.instituteEmail)
-          .where('userType', 'institute')
-          .firstOrFail()
+      const instituteRole = await Role.findBy('roleKey', 'institute')
+      if (instituteRole) {
+        await userRepo.assignRoleIfMissing(user, instituteRole.id)
       }
 
       return user
@@ -308,25 +271,22 @@ export default class AuthController {
     }
   }
 
- private async syncFacultyToUser(faculty: Faculty) {
+  private async syncFacultyToUser(faculty: Faculty) {
     try {
-      let user = await User.query()
-        .where('email', faculty.facultyEmail)
-        .where('userType', 'faculty')
-        .first()
+      const userRepo = new UserRepository()
+      const user = await userRepo.upsertFacultyUser({
+        email: faculty.facultyEmail,
+        fullName: faculty.facultyName,
+        password: faculty.facultyPassword,
+        mobile: faculty.facultyMobile || '0000000000',
+        facultyId: faculty.id,
+        instituteId: faculty.instituteId,
+        isActive: faculty.isActive,
+      })
 
-      if (user) {
-        await db.rawQuery(
-          `UPDATE users SET full_name = ?, mobile = ?, institute_id = ?, faculty_id = ?, is_active = ?, password = ?, deleted_at = NULL, updated_at = NOW() WHERE id = ?`,
-          [faculty.facultyName, faculty.facultyMobile || '0000000000', faculty.instituteId, faculty.id, faculty.isActive, faculty.facultyPassword, user.id]
-        )
-        user = await User.findOrFail(user.id)
-      } else {
-        await db.rawQuery(
-          `INSERT INTO users (full_name, email, password, user_type, faculty_id, institute_id, mobile, is_active, is_email_verified, is_mobile_verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [faculty.facultyName, faculty.facultyEmail, faculty.facultyPassword, 'faculty', faculty.id, faculty.instituteId, faculty.facultyMobile || '0000000000', faculty.isActive, false, false]
-        )
-        user = await User.query().where('email', faculty.facultyEmail).where('userType', 'faculty').firstOrFail()
+      const facultyRole = await Role.findBy('roleKey', 'faculty')
+      if (facultyRole) {
+        await userRepo.assignRoleIfMissing(user, facultyRole.id)
       }
 
       return user
@@ -336,26 +296,22 @@ export default class AuthController {
     }
   }
 
-
-private async syncStudentToUser(student: Student) {
+  private async syncStudentToUser(student: Student) {
     try {
-      let user = await User.query()
-        .where('email', student.studentEmail)
-        .where('userType', 'student')
-        .first()
+      const userRepo = new UserRepository()
+      const user = await userRepo.upsertStudentUser({
+        email: student.studentEmail,
+        fullName: student.studentName,
+        password: student.studentPassword,
+        mobile: student.studentMobile || '0000000000',
+        studentId: student.id,
+        instituteId: student.instituteId,
+        isActive: student.isActive,
+      })
 
-      if (user) {
-        await db.rawQuery(
-          `UPDATE users SET full_name = ?, mobile = ?, institute_id = ?, student_id = ?, is_active = ?, password = ?, deleted_at = NULL, updated_at = NOW() WHERE id = ?`,
-          [student.studentName, student.studentMobile || '0000000000', student.instituteId, student.id, student.isActive, student.studentPassword, user.id]
-        )
-        user = await User.findOrFail(user.id)
-      } else {
-        await db.rawQuery(
-          `INSERT INTO users (full_name, email, password, user_type, student_id, institute_id, mobile, is_active, is_email_verified, is_mobile_verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [student.studentName, student.studentEmail, student.studentPassword, 'student', student.id, student.instituteId, student.studentMobile || '0000000000', student.isActive, false, false]
-        )
-        user = await User.query().where('email', student.studentEmail).where('userType', 'student').firstOrFail()
+      const studentRole = await Role.findBy('roleKey', 'student')
+      if (studentRole) {
+        await userRepo.assignRoleIfMissing(user, studentRole.id)
       }
 
       return user

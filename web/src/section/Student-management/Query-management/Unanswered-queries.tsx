@@ -26,7 +26,7 @@ const UnansweredQuestions: React.FC<UnansweredQuestionsProps> = ({
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
+  const [expandedQuestion, setExpandedQuestion] = useState<number | string | null>(null);
   const [answerText, setAnswerText] = useState<string>('');
   const { queries, queriesMutate } = useStudentQueries();
   const selectedQueryId = (location.state as { queryId?: number } | null)?.queryId;
@@ -38,7 +38,9 @@ const UnansweredQuestions: React.FC<UnansweredQuestionsProps> = ({
     const mapped = queries
       .filter((q) => q.status === 'open' || q.status === 'in_progress')
       .map((q) => ({
-        id: q.id,
+        id: q.id ?? q.uuid ?? Math.random().toString(),
+        uuid: q.uuid,
+        syncStatus: q.syncStatus,
         studentName: q.student?.studentName || `Student ${q.studentId}`,
         studentId: q.student?.studentId || String(q.studentId),
         category: q.category || 'General',
@@ -50,7 +52,7 @@ const UnansweredQuestions: React.FC<UnansweredQuestionsProps> = ({
         response: q.response,
         resolvedAt: q.resolvedAt,
         priority: q.priority,
-        instituteId: q.instituteId,
+        instituteId: Number(q.instituteId),
         assignedFacultyId: q.assignedFacultyId,
         resolvedByUserId: q.resolvedByUserId,
         isActive: q.isActive,
@@ -61,15 +63,10 @@ const UnansweredQuestions: React.FC<UnansweredQuestionsProps> = ({
   }, [queries]);
 
   useEffect(() => {
-    if (!selectedQueryId || questions.length === 0) {
-      return;
-    }
-
-    const existsInList = questions.some((q) => q.id === selectedQueryId);
-    if (existsInList) {
+    if (selectedQueryId) {
       setExpandedQuestion(selectedQueryId);
     }
-  }, [selectedQueryId, questions]);
+  }, [selectedQueryId]);
 
   const filteredQuestions: Question[] = questions.filter(question => {
     const matchesSearch: boolean = searchQuery === '' ||
@@ -92,14 +89,14 @@ const UnansweredQuestions: React.FC<UnansweredQuestionsProps> = ({
     }
   };
 
-  const handleAnswerSubmit = async (questionId: number): Promise<void> => {
+  const handleAnswerSubmit = async (questionId: number | string): Promise<void> => {
     if (!answerText.trim()) return;
 
     const updated = await resolveStudentQuery(questionId, answerText.trim());
     if (!updated) return;
 
     if (onAnswerSubmit) {
-      onAnswerSubmit(questionId, answerText.trim());
+      onAnswerSubmit(typeof questionId === 'number' ? questionId : Number(questionId) || 0, answerText.trim());
     }
 
     await queriesMutate();
@@ -107,7 +104,7 @@ const UnansweredQuestions: React.FC<UnansweredQuestionsProps> = ({
     setExpandedQuestion(null);
   };
 
-  const handleQuestionClick = (questionId: number): void => {
+  const handleQuestionClick = (questionId: number | string): void => {
     setExpandedQuestion(expandedQuestion === questionId ? null : questionId);
   };
 

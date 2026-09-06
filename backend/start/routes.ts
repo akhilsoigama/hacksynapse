@@ -200,7 +200,17 @@ router
       .get('/student-queries/progress-report', [StudentQueriesController, 'progressReport'])
       .use(middleware.auth({ guards: ['adminapi', 'api'] }))
       .use(middleware.studentProgressPermission())
-    // Student Query Routes
+    // Student Query Routes & ID-wise Access Control
+    router.post('/api/studentQuery/sync', [StudentQueriesController, 'sync'])
+    router.post('/student-queries/sync', [StudentQueriesController, 'sync'])
+
+    router.get('/api/studentQuery', [StudentQueriesController, 'index'])
+    router.post('/api/studentQuery', [StudentQueriesController, 'store'])
+    router.get('/api/studentQuery/:id', [StudentQueriesController, 'show'])
+    router.put('/api/studentQuery/:id', [StudentQueriesController, 'update'])
+    router.patch('/api/studentQuery/:id', [StudentQueriesController, 'update'])
+    router.delete('/api/studentQuery/:id', [StudentQueriesController, 'destroy'])
+
     router
       .resource('student-queries', StudentQueriesController)
       .apiOnly()
@@ -208,6 +218,9 @@ router
       .use('*', middleware.permission([PermissionKeys.STUDENT_QUERY_ACCESS]))
 
     // Govt Routes
+    router
+      .post('/govtEvent/sync', [GovtEventsController, 'sync'])
+      .use(middleware.auth({ guards: ['adminapi', 'api'] }))
     router
       .resource('govtEvent', GovtEventsController)
       .apiOnly()
