@@ -13,7 +13,22 @@
   import Faculty from '#models/faculty'
   import Student from './student.js'
 
-  const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
+  const safeScryptHasher = () => {
+    const scrypt = hash.use('scrypt')
+    return {
+      make: async (value: string) => {
+        if (hash.isValidHash(value)) {
+          return value
+        }
+        return scrypt.make(value)
+      },
+      verify: (hashedValue: string, plainValue: string) => {
+        return scrypt.verify(hashedValue, plainValue)
+      },
+    }
+  }
+
+  const AuthFinder = withAuthFinder(safeScryptHasher as any, {
     uids: ['email'],
     passwordColumnName: 'password',
   })

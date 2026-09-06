@@ -89,7 +89,7 @@ export default class UserRepository {
   async upsertInstituteUser(data: {
     email: string
     fullName: string
-    password: string
+    password?: string
     mobile: string
     instituteId: number
     isActive: boolean
@@ -100,21 +100,24 @@ export default class UserRepository {
       .first()
 
     if (user) {
-      await User.query().where('id', user.id).update({
+      const updateData: Record<string, unknown> = {
         fullName: data.fullName,
         mobile: data.mobile,
         instituteId: data.instituteId,
         isActive: data.isActive,
-        password: data.password,
         deletedAt: null,
         updatedAt: new Date(),
-      })
+      }
+      if (data.password) {
+        updateData.password = data.password
+      }
+      await User.query().where('id', user.id).update(updateData)
       user = await User.findOrFail(user.id)
     } else {
       user = await User.create({
         fullName: data.fullName,
         email: data.email,
-        password: data.password,
+        password: data.password || '',
         userType: 'institute',
         instituteId: data.instituteId,
         mobile: data.mobile,
@@ -133,7 +136,7 @@ export default class UserRepository {
   async upsertFacultyUser(data: {
     email: string
     fullName: string
-    password: string
+    password?: string
     mobile: string
     facultyId: number
     instituteId: number
@@ -145,22 +148,25 @@ export default class UserRepository {
       .first()
 
     if (user) {
-      await User.query().where('id', user.id).update({
+      const updateData: Record<string, unknown> = {
         fullName: data.fullName,
         mobile: data.mobile,
         instituteId: data.instituteId,
         facultyId: data.facultyId,
         isActive: data.isActive,
-        password: data.password,
         deletedAt: null,
         updatedAt: new Date(),
-      })
+      }
+      if (data.password) {
+        updateData.password = data.password
+      }
+      await User.query().where('id', user.id).update(updateData)
       user = await User.findOrFail(user.id)
     } else {
       user = await User.create({
         fullName: data.fullName,
         email: data.email,
-        password: data.password,
+        password: data.password || '',
         userType: 'faculty',
         facultyId: data.facultyId,
         instituteId: data.instituteId,
@@ -180,7 +186,7 @@ export default class UserRepository {
   async upsertStudentUser(data: {
     email: string
     fullName: string
-    password: string
+    password?: string
     mobile: string
     studentId: number
     instituteId: number
@@ -192,22 +198,25 @@ export default class UserRepository {
       .first()
 
     if (user) {
-      await User.query().where('id', user.id).update({
+      const updateData: Record<string, unknown> = {
         fullName: data.fullName,
         mobile: data.mobile,
         instituteId: data.instituteId,
         studentId: data.studentId,
         isActive: data.isActive,
-        password: data.password,
         deletedAt: null,
         updatedAt: new Date(),
-      })
+      }
+      if (data.password) {
+        updateData.password = data.password
+      }
+      await User.query().where('id', user.id).update(updateData)
       user = await User.findOrFail(user.id)
     } else {
       user = await User.create({
         fullName: data.fullName,
         email: data.email,
-        password: data.password,
+        password: data.password || '',
         userType: 'student',
         studentId: data.studentId,
         instituteId: data.instituteId,

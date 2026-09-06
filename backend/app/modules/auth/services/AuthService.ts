@@ -80,6 +80,12 @@ export default class AuthService {
               instituteId: institute.id,
               isActive: institute.isActive,
             })
+            const role =
+              (await this.getRoleForInstitute(institute.id)) ??
+              (await Role.findBy('roleKey', 'institute'))
+            if (role) {
+              await this.userRepo.assignRoleIfMissing(user, role.id)
+            }
             resolvedUser = user
             authType = 'institute'
           }
@@ -112,6 +118,12 @@ export default class AuthService {
               instituteId: faculty.instituteId,
               isActive: faculty.isActive,
             })
+            const role =
+              (await this.getRoleForFaculty(faculty.id)) ??
+              (await Role.findBy('roleKey', 'faculty'))
+            if (role) {
+              await this.userRepo.assignRoleIfMissing(user, role.id)
+            }
             resolvedUser = user
             authType = 'faculty'
           }
@@ -144,6 +156,12 @@ export default class AuthService {
               instituteId: student.instituteId,
               isActive: student.isActive,
             })
+            const role =
+              (await this.getRoleForStudent(student.id)) ??
+              (await Role.findBy('roleKey', 'student'))
+            if (role) {
+              await this.userRepo.assignRoleIfMissing(user, role.id)
+            }
             resolvedUser = user
             authType = 'student'
           }
@@ -255,7 +273,9 @@ export default class AuthService {
           isActive: institute.isActive,
         })
 
-        const role = await this.getRoleForInstitute(institute.id)
+        const role =
+          (await this.getRoleForInstitute(institute.id)) ??
+          (await Role.findBy('roleKey', 'institute'))
         if (role) {
           await this.userRepo.assignRoleIfMissing(user, role.id)
         }
@@ -289,7 +309,9 @@ export default class AuthService {
           isActive: faculty.isActive,
         })
 
-        const role = await this.getRoleForFaculty(faculty.id)
+        const role =
+          (await this.getRoleForFaculty(faculty.id)) ??
+          (await Role.findBy('roleKey', 'faculty'))
         if (role) {
           await this.userRepo.assignRoleIfMissing(user, role.id)
         }
@@ -300,6 +322,42 @@ export default class AuthService {
     }
 
     auditLogger.log({ action: 'sync.faculty', meta: { synced, errors } })
+    return { synced, errors }
+  }
+
+  /**
+   * Sync all students to the users table.
+   */
+  async syncAllStudents(): Promise<{ synced: number; errors: number }> {
+    const students = await Student.all()
+    let synced = 0
+    let errors = 0
+
+    for (const student of students) {
+      try {
+        const user = await this.userRepo.upsertStudentUser({
+          email: student.studentEmail,
+          fullName: student.studentName,
+          password: student.studentPassword,
+          mobile: student.studentMobile || '0000000000',
+          studentId: student.id,
+          instituteId: student.instituteId,
+          isActive: student.isActive,
+        })
+
+        const role =
+          (await this.getRoleForStudent(student.id)) ??
+          (await Role.findBy('roleKey', 'student'))
+        if (role) {
+          await this.userRepo.assignRoleIfMissing(user, role.id)
+        }
+        synced++
+      } catch {
+        errors++
+      }
+    }
+
+    auditLogger.log({ action: 'sync.student', meta: { synced, errors } })
     return { synced, errors }
   }
 
@@ -319,6 +377,14 @@ export default class AuthService {
       .preload('role', (q) => q.preload('permissions'))
       .first()
     return faculty?.role ?? null
+  }
+
+  private async getRoleForStudent(studentId: number): Promise<InstanceType<typeof Role> | null> {
+    const student = await Student.query()
+      .where('id', studentId)
+      .preload('role', (q) => q.preload('permissions'))
+      .first()
+    return student?.role ?? null
   }
 
   /**
@@ -408,16 +474,22 @@ export default class AuthService {
     authType: AuthType
   ): Promise<InstanceType<typeof Role> | null> {
     if (authType === 'institute' && user.instituteId) {
-      return this.getRoleForInstitute(user.instituteId)
+      return (
+        (await this.getRoleForInstitute(user.instituteId)) ??
+        (await Role.findBy('roleKey', 'institute'))
+      )
     }
     if (authType === 'faculty' && user.facultyId) {
-      return this.getRoleForFaculty(user.facultyId)
+      return (
+        (await this.getRoleForFaculty(user.facultyId)) ??
+        (await Role.findBy('roleKey', 'faculty'))
+      )
     }
     if (authType === 'student' && user.studentId) {
-      const student = await user.related('student').query()
-        .preload('role', (q) => q.preload('permissions'))
-        .first()
-      return student?.role ?? null
+      return (
+        (await this.getRoleForStudent(user.studentId)) ??
+        (await Role.findBy('roleKey', 'student'))
+      )
     }
     return null
   }

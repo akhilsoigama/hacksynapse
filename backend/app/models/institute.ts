@@ -103,7 +103,9 @@ export default class Institute extends BaseModel {
   @beforeSave()
   public static async hashPassword(institute: Institute) {
     if (institute.$dirty.institutePassword) {
-      institute.institutePassword = await hash.make(institute.institutePassword) 
+      if (!hash.isValidHash(institute.institutePassword)) {
+        institute.institutePassword = await hash.make(institute.institutePassword)
+      }
     }
   }
 
