@@ -49,6 +49,19 @@ router.post('/sync/faculty', [AuthController, 'syncFaculty'])
 router.get('/ping', [PingController, 'handle'])
 router.get('/api/online-library/search', [OnlineLibrariesController, 'search'])
 router.get('/api/online-library/metadata/:identifier', [OnlineLibrariesController, 'metadata'])
+
+// RAG Skill Learning & Semantic Search Endpoints (both /api/rag and /rag prefixes)
+for (const prefix of ['/api/rag', '/rag']) {
+  router.post(`${prefix}/course`, [RagController, 'createCourse'])
+  router.post(`${prefix}/query`, [RagController, 'queryCourses'])
+  router.get(`${prefix}/courses`, [RagController, 'listCourses'])
+  router.get(`${prefix}/courses/:id`, [RagController, 'showCourse'])
+  router.put(`${prefix}/courses/:id`, [RagController, 'updateCourse'])
+  router.delete(`${prefix}/courses/:id`, [RagController, 'deleteCourse'])
+  router.post(`${prefix}/sync`, [RagController, 'syncLms'])
+  router.get(`${prefix}/stats`, [RagController, 'stats'])
+}
+
 router
   .group(() => {
     router

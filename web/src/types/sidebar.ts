@@ -7,6 +7,7 @@ export interface SubLink {
   label: string;
   icon: ReactNode;
   permissions: (PermissionKeys | string)[];
+  subLinks?: SubLink[];
 }
 
 export interface SidebarLink {

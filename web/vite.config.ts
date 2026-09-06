@@ -6,7 +6,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import { copyFileSync, existsSync, mkdirSync } from "fs";
 import path from "path";
 
-export default defineConfig(({ command, mode }) => ({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -134,19 +134,11 @@ export default defineConfig(({ command, mode }) => ({
   ],
 
   server: {
-    headers:
-      command === "serve"
-        ? {
-            "Cross-Origin-Opener-Policy": "same-origin",
-            "Cross-Origin-Embedder-Policy": "credentialless",
-          }
-        : {},
+    headers: {},
   },
 
   preview: {
     headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "credentialless",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   },

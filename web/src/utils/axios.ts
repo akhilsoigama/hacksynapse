@@ -300,6 +300,16 @@ export const endpoints = {
   contact: {
     send: "/api/contact",
   },
+  rag: {
+    createCourse: "/api/rag/course",
+    searchCourses: "/api/rag/query",
+    listCourses: "/api/rag/courses",
+    getCourse: (id: number | string) => `/api/rag/courses/${id}`,
+    updateCourse: (id: number | string) => `/api/rag/courses/${id}`,
+    deleteCourse: (id: number | string) => `/api/rag/courses/${id}`,
+    sync: "/api/rag/sync",
+    stats: "/api/rag/stats",
+  },
 };
 
 export default axiosInstance;
