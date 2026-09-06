@@ -111,6 +111,21 @@ export default function StudentQueryQuestionCard({
               <FiTag className="w-3 h-3" />
               {question.priority}
             </span>
+
+            {/* Offline Sync Status Badge */}
+            {question.syncStatus === 'pending' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:border-sky-800/50 dark:bg-sky-950/40 dark:text-sky-300 animate-pulse">
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                Pending Sync
+              </span>
+            )}
+
+            {question.syncStatus === 'failed' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:border-rose-800/50 dark:bg-rose-950/40 dark:text-rose-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                Sync Failed
+              </span>
+            )}
           </div>
           
           {/* Date */}

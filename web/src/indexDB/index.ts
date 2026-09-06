@@ -3,5 +3,4 @@ export * from "./user";
 export * from "./rolePermission";
 export * from "./permission";
 export * from "./moduleCache";
-export * from "./db";
-export * from "./material";
+export * from "./studentQuery";

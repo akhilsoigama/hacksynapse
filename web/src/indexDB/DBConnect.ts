@@ -1,7 +1,7 @@
 import { openDB, deleteDB, IDBPDatabase } from "idb";
 
 const DB_NAME = "ruralSpark";
-const DB_VERSION = 1.3;
+const DB_VERSION = 1.4;
 
 export const USER_STORE = "users";
 export const ROLE_STORE = "userRole";
@@ -23,9 +23,13 @@ export const MATERIAL_STORE = "material";
 export const MATERIAL_SYNC_QUEUE_STORE = "material_sync_queue";
 export const FACULTY_LEAVE_CACHE_STORE = "facultyLeavesCache";
 export const STUDENT_QUERY_CACHE_STORE = "studentQueriesCache";
+export const STUDENT_QUERY_STORE = "studentQuery";
+export const STUDENT_QUERY_SYNC_QUEUE_STORE = "studentQuery_sync_queue";
 export const TRANSLATION_CACHE_STORE = "translationCache";
 export const PROGRESS_CACHE_STORE = "progressCache";
 export const CLOUDINARY_CACHE_STORE = "cloudinaryCache";
+export const ASSIGNMENT_SYNC_QUEUE_STORE = "assignmentSyncQueue";
+export const GOVT_EVENT_SYNC_QUEUE_STORE = "govtEventSyncQueue";
 
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
@@ -45,7 +49,7 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
   if (typeof window === "undefined") return null;
 
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, { 
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
         [
           USER_STORE,
@@ -69,6 +73,8 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
           TRANSLATION_CACHE_STORE,
           PROGRESS_CACHE_STORE,
           CLOUDINARY_CACHE_STORE,
+          ASSIGNMENT_SYNC_QUEUE_STORE,
+          GOVT_EVENT_SYNC_QUEUE_STORE,
         ].forEach((storeName) => {
           if (db.objectStoreNames.contains(storeName)) {
             db.deleteObjectStore(storeName);
@@ -96,23 +102,21 @@ export const initDB = async (): Promise<IDBPDatabase | null> => {
         db.createObjectStore(TRANSLATION_CACHE_STORE, { keyPath: "key" });
         db.createObjectStore(PROGRESS_CACHE_STORE, { keyPath: "key" });
         db.createObjectStore(CLOUDINARY_CACHE_STORE, { keyPath: "key" });
+        db.createObjectStore(ASSIGNMENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
+        db.createObjectStore(GOVT_EVENT_SYNC_QUEUE_STORE, { keyPath: "uuid", autoIncrement: true });
 
         if (!db.objectStoreNames.contains(MATERIAL_STORE)) {
-          const mStore = db.createObjectStore(MATERIAL_STORE, { keyPath: "id", autoIncrement: true });
-          mStore.createIndex("uuid", "uuid", { unique: false });
-          mStore.createIndex("instituteId", "instituteId", { unique: false });
-          mStore.createIndex("departmentId", "departmentId", { unique: false });
-          mStore.createIndex("createdBy", "createdBy", { unique: false });
+          db.createObjectStore(MATERIAL_STORE, { keyPath: "id", autoIncrement: true });
         }
-
         if (!db.objectStoreNames.contains(MATERIAL_SYNC_QUEUE_STORE)) {
-          const qStore = db.createObjectStore(MATERIAL_SYNC_QUEUE_STORE, { keyPath: "id", autoIncrement: true });
-          qStore.createIndex("uuid", "uuid", { unique: false });
-          qStore.createIndex("action", "action", { unique: false });
-          qStore.createIndex("status", "status", { unique: false });
-          qStore.createIndex("instituteId", "instituteId", { unique: false });
-          qStore.createIndex("departmentId", "departmentId", { unique: false });
-          qStore.createIndex("createdBy", "createdBy", { unique: false });
+          db.createObjectStore(MATERIAL_SYNC_QUEUE_STORE, { keyPath: "id", autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(STUDENT_QUERY_STORE)) {
+          const sqStore = db.createObjectStore(STUDENT_QUERY_STORE, { keyPath: "id", autoIncrement: true });
+          sqStore.createIndex("uuid", "uuid", { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STUDENT_QUERY_SYNC_QUEUE_STORE)) {
+          db.createObjectStore(STUDENT_QUERY_SYNC_QUEUE_STORE, { keyPath: "id", autoIncrement: true });
         }
       },
 
