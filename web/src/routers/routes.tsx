@@ -1,10 +1,11 @@
 // routes.tsx
-import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
 import { useState, Suspense, useEffect, ElementType } from "react";
 import Skeletons from '../components/common/Skeletons';
 import { useUser } from "../atoms/userAtom";
 import { useTheme } from "@/theme/AppThemeProvider.tsx";
 import { lazyPreload, preloadAllChunks } from "@/utils/lazyload";
+import { getCanonicalCategory, getCanonicalSubCategory } from '@/constants/categoryData';
 
 // ✅ Lazy imports with preload
 const Navbaar = lazyPreload(() => import("../section/Navbaar"), "Navbaar");
@@ -122,6 +123,36 @@ const LoginRoute = () => {
   return user ? <Navigate to="/dashboard" replace /> : <Page component={pages.Login} type="form" />;
 };
 
+
+// Helper to redirect /courses/:category or /courses/:category/:subCategory
+const CoursesRedirect = () => {
+  const { category, subCategory } = useParams();
+  const location = useLocation();
+
+  if (category) {
+    const norm = category.toLowerCase().replace(/[-_]+/g, ' ');
+    if (norm === 'computer basics') {
+      const canonicalSub = subCategory
+        ? getCanonicalSubCategory('Computer Basics', subCategory) || subCategory
+        : '';
+      const queryStr = canonicalSub
+        ? `?subCategory=${encodeURIComponent(canonicalSub)}`
+        : location.search;
+      return <Navigate to={`/dashboard/skills/computer-basics${queryStr}`} replace />;
+    }
+  }
+
+  const queryParams = new URLSearchParams(location.search);
+  if (category && !queryParams.has('category')) {
+    const canonical = getCanonicalCategory(category) || category;
+    queryParams.set('category', canonical);
+  }
+  if (subCategory && !queryParams.has('subCategory')) {
+    queryParams.set('subCategory', subCategory);
+  }
+  const searchStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+  return <Navigate to={`/dashboard/skills/rag${searchStr}`} replace />;
+};
 
 // OR agar children bhi chahiye toh:
 type DashboardLayoutProps = {
@@ -313,11 +344,17 @@ export default function Routers() {
           <Route path="offline-library/downloads" element={<Page component={pages.OfflineMaterials} type="list" />} />
           <Route path="skills/spoken-english" element={<Page component={pages.SpokenEnglish} type="list" />}></Route>
           <Route path="skills/computer-basics" element={<Page component={pages.ComputerBasic} type="list" />}></Route>
+          <Route path="skills/computer-basics/:subCategory" element={<Page component={pages.ComputerBasic} type="list" />}></Route>
           <Route path="skills/coding" element={<Page component={pages.Coding} type="list" />}></Route>
           <Route path="skills/government-exams" element={<Page component={pages.GovernmentExams} type="list" />}></Route>
           <Route path="skills/digital-skills" element={<Page component={pages.DigitalSkill} type="page" />} />
           <Route path="skills/career-roadmap" element={<Page component={pages.CareerRoadmap} type="page" />} />
           <Route path="skills/soft-skills" element={<Page component={pages.softSkill} type="page" />} />
+
+          {/* Direct /courses routing aliases */}
+          <Route path="courses" element={<CoursesRedirect />} />
+          <Route path="courses/:category" element={<CoursesRedirect />} />
+          <Route path="courses/:category/:subCategory" element={<CoursesRedirect />} />
 
           {/* RAG Skill Learning / Course Management */}
           <Route path="skills/rag" element={<Page component={pages.RagCourseList} type="table" />} />
@@ -326,6 +363,11 @@ export default function Routers() {
           <Route path="skills/rag/create" element={<Page component={pages.RagCreate} type="form" />} />
           <Route path="skills/rag/:id/edit" element={<Page component={pages.RagCourseEdit} type="form" />} />
         </Route>
+
+        {/* Protected Top-Level Course Aliases */}
+        <Route path="/courses" element={<CoursesRedirect />} />
+        <Route path="/courses/:category" element={<CoursesRedirect />} />
+        <Route path="/courses/:category/:subCategory" element={<CoursesRedirect />} />
       </Route>
     </Routes>
   );
